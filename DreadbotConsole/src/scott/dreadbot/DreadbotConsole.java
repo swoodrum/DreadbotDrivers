@@ -119,6 +119,7 @@ public class DreadbotConsole {
 		return context.getMessage(message, null, Locale.getDefault());
 	}
 
+	@SuppressWarnings("unchecked")
 	private static ArrayList<String> getCOMPorts() {
 		ArrayList<String> ports = new ArrayList<String>();
 		java.util.Enumeration<CommPortIdentifier> portEnum = CommPortIdentifier
