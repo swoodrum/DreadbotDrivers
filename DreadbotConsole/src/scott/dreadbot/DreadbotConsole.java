@@ -13,9 +13,13 @@ import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import scott.dreadbot.components.GamePadController;
+import scott.dreadbot.components.ServoStatusPanel;
+
 public class DreadbotConsole {
 
 	private static ApplicationContext context;
+	private static GamePadController controller;
 	private static JFrame frame;
 
 	// private static JMenuBar menuBar;
@@ -25,6 +29,7 @@ public class DreadbotConsole {
 	 */
 	public static void main(String[] args) {
 		context = new ClassPathXmlApplicationContext("applicationContext.xml");
+		controller = new GamePadController();
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				createAndShowGUI();
@@ -53,8 +58,13 @@ public class DreadbotConsole {
 		});
 		fileMenu.addSeparator();
 		fileMenu.add(exitItem);
+
+		// Build panel components
+		ServoStatusPanel sPanel1 = new ServoStatusPanel(context.getMessage(
+				"servo.panel.title", new Object[] { 1 }, Locale.getDefault()));
 		// Add components to the frame in proper order
 		frame.setJMenuBar(menuBar);
+		frame.add(sPanel1);
 		// Display the window.
 		frame.pack();
 		frame.setVisible(true);
