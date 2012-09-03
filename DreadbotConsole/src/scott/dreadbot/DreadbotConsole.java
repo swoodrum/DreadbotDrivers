@@ -15,6 +15,7 @@ import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 import org.apache.log4j.Logger;
@@ -39,7 +40,14 @@ public class DreadbotConsole {
 	 */
 	public static void main(String[] args) {
 		context = new ClassPathXmlApplicationContext("applicationContext.xml");
-		controller = new GamePadController();
+		try {
+			controller = new GamePadController();
+		} catch (Exception e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(frame, e.getMessage(),
+					e.getMessage(), JOptionPane.ERROR_MESSAGE);
+			System.exit(1);
+		}
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				createAndShowGUI();

@@ -60,14 +60,15 @@ public class GamePadController {
 	private int rumblerIdx; // index for the rumbler being used
 	private boolean rumblerOn = false; // whether rumbler is on or off
 
-	public GamePadController() {
+	public GamePadController() throws Exception {
 		// get the controllers
 		ControllerEnvironment ce = ControllerEnvironment
 				.getDefaultEnvironment();
 		Controller[] cs = ce.getControllers();
 		if (cs.length == 0) {
 			getLogger().debug("No controllers found");
-			System.exit(0);
+			//System.exit(0);
+			throw new Exception("No controllers found");
 		} else
 			//System.out.println("Num. controllers: " + cs.length);
 			getLogger().debug("Num. controllers: " + cs.length);
@@ -87,7 +88,7 @@ public class GamePadController {
 		return Logger.getLogger(getClass());
 	}
 	
-	private Controller findGamePad(Controller[] cs)
+	private Controller findGamePad(Controller[] cs) throws Exception
 	/*
 	 * Search the array of controllers until a suitable game pad controller is
 	 * found (eith of type GAMEPAD or STICK).
@@ -105,7 +106,8 @@ public class GamePadController {
 
 		if (i == cs.length) {
 			getLogger().debug("No game pad found");
-			System.exit(0);
+			//System.exit(0);
+			throw new Exception("No game pad found");
 		} else
 			getLogger().debug("Game pad index: " + i);
 
