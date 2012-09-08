@@ -77,6 +77,7 @@ public class DreadbotConsole {
 		JMenu fileMenu = new JMenu(getSimpleMessage("menu.file"));
 		JMenuItem exitItem = new JMenuItem(
 				getSimpleMessage("menu.file.item.exit"));
+		exitItem.setIcon(getIconFromResource(getSimpleMessage("menu.file.item.exit.icon")));
 		exitItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -91,16 +92,8 @@ public class DreadbotConsole {
 		menuBar.add(fileMenu);
 		JMenu toolMenu = new JMenu(getSimpleMessage("menu.tools"));
 		JMenu serialMenu = new JMenu(getSimpleMessage("menu.tools.menu.serial"));
-		Resource usbImage = context.getResource("classpath:scott/dreadbot/resources/images/usb.png");
-		try {
-			ImageIcon usbIcon = new ImageIcon(usbImage.getURL());
-			if(usbIcon != null) {
-				serialMenu.setIcon(usbIcon);
-			}
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		serialMenu
+				.setIcon(getIconFromResource(getSimpleMessage("menu.tools.menu.serial.icon")));
 		ArrayList<String> ports = getCOMPorts();
 		for (Iterator<String> portsIter = ports.iterator(); portsIter.hasNext();) {
 			JCheckBoxMenuItem mItem = new JCheckBoxMenuItem(portsIter.next());
@@ -220,6 +213,18 @@ public class DreadbotConsole {
 		// Display the window.
 		frame.pack();
 		frame.setVisible(true);
+	}
+
+	private static ImageIcon getIconFromResource(String location) {
+		ImageIcon icon = null;
+		Resource resource = context.getResource(location);
+		try {
+			icon = new ImageIcon(resource.getURL());
+			getLogger().debug("Loaded icon from URL: " + resource.getURL());
+		} catch (IOException e1) {
+			getLogger().warn(e1.getMessage());
+		}
+		return icon;
 	}
 
 	private static Logger getLogger() {
