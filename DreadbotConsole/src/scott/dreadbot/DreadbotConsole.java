@@ -6,10 +6,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Locale;
 
+import javax.swing.ImageIcon;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -21,6 +23,7 @@ import javax.swing.Timer;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.core.io.Resource;
 
 import scott.dreadbot.components.GamePadController;
 import scott.dreadbot.components.ServoStatusPanel;
@@ -88,6 +91,16 @@ public class DreadbotConsole {
 		menuBar.add(fileMenu);
 		JMenu toolMenu = new JMenu(getSimpleMessage("menu.tools"));
 		JMenu serialMenu = new JMenu(getSimpleMessage("menu.tools.menu.serial"));
+		Resource usbImage = context.getResource("classpath:scott/dreadbot/resources/images/usb.png");
+		try {
+			ImageIcon usbIcon = new ImageIcon(usbImage.getURL());
+			if(usbIcon != null) {
+				serialMenu.setIcon(usbIcon);
+			}
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		ArrayList<String> ports = getCOMPorts();
 		for (Iterator<String> portsIter = ports.iterator(); portsIter.hasNext();) {
 			JCheckBoxMenuItem mItem = new JCheckBoxMenuItem(portsIter.next());
