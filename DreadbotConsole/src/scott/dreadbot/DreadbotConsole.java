@@ -2,6 +2,7 @@ package scott.dreadbot;
 
 import gnu.io.CommPortIdentifier;
 
+import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -26,7 +27,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.io.Resource;
 
 import scott.dreadbot.components.GamePadController;
-import scott.dreadbot.components.ServoStatusPanel;
+import scott.dreadbot.components.ServoGridPanel;
 
 public class DreadbotConsole {
 
@@ -34,6 +35,7 @@ public class DreadbotConsole {
 	private static ApplicationContext context;
 	private static GamePadController controller;
 	private static JFrame frame;
+	private static ServoGridPanel servoGridPanel;
 	private static Timer pollTimer;
 
 	// private static JMenuBar menuBar;
@@ -63,6 +65,7 @@ public class DreadbotConsole {
 
 		frame = new JFrame(getSimpleMessage("frame.title"));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setLayout(new BorderLayout(5, 5));
 		frame.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
@@ -102,11 +105,11 @@ public class DreadbotConsole {
 		toolMenu.add(serialMenu);
 		menuBar.add(toolMenu);
 		// Build panel components
-		ServoStatusPanel sPanel1 = new ServoStatusPanel(context.getMessage(
-				"servo.panel.title", new Object[] { 1 }, Locale.getDefault()));
+		servoGridPanel = new ServoGridPanel();
+		frame.add(BorderLayout.SOUTH, servoGridPanel);
 		// Add components to the frame in proper order
 		frame.setJMenuBar(menuBar);
-		frame.add(sPanel1);
+		
 
 		// initialize and start the Timer
 		pollTimer = new Timer(DELAY, new ActionListener() {
