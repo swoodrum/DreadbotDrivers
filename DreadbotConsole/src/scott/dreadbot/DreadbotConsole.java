@@ -1,18 +1,12 @@
 package scott.dreadbot;
 
-import gnu.io.CommPortIdentifier;
-
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Locale;
 
-import javax.swing.ImageIcon;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -22,17 +16,17 @@ import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 import org.apache.log4j.Logger;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.core.io.Resource;
 
+import scott.dreadbot.components.CanvasPanel;
+import scott.dreadbot.components.DreadbotUtils;
+import scott.dreadbot.components.ExitHandler;
 import scott.dreadbot.components.GamePadController;
 import scott.dreadbot.components.ServoGridPanel;
+import scott.dreadbot.components.SpringUtils;
 
 public class DreadbotConsole {
 
 	private static final int DELAY = 40;
-	private static ApplicationContext context;
 	private static GamePadController controller;
 	private static JFrame frame;
 	private static ServoGridPanel servoGridPanel;
@@ -44,7 +38,6 @@ public class DreadbotConsole {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		context = new ClassPathXmlApplicationContext("applicationContext.xml");
 		try {
 			controller = new GamePadController();
 		} catch (Exception e) {
@@ -63,41 +56,28 @@ public class DreadbotConsole {
 
 	private static void createAndShowGUI() {
 
-		frame = new JFrame(getSimpleMessage("frame.title"));
+		MyExitHandler exitHandler = new MyExitHandler();
+		frame = new JFrame(SpringUtils.getSimpleMessage("frame.title"));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BorderLayout(5, 5));
-		frame.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				getLogger().debug(getSimpleMessage("app.timer.exiting"));
-				pollTimer.stop();
-				getLogger().debug(getSimpleMessage("app.exiting"));
-				System.exit(0);
-			}
-		});
+		frame.addWindowListener(exitHandler);
 		JMenuBar menuBar = new JMenuBar();
 		// build menus
-		JMenu fileMenu = new JMenu(getSimpleMessage("menu.file"));
+		JMenu fileMenu = new JMenu(SpringUtils.getSimpleMessage("menu.file"));
 		JMenuItem exitItem = new JMenuItem(
-				getSimpleMessage("menu.file.item.exit"));
-		exitItem.setIcon(getIconFromResource(getSimpleMessage("menu.file.item.exit.icon")));
-		exitItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				getLogger().debug(getSimpleMessage("app.timer.exiting"));
-				pollTimer.stop();
-				getLogger().debug(getSimpleMessage("app.exiting"));
-				System.exit(0);
-			}
-		});
+				SpringUtils.getSimpleMessage("menu.file.item.exit"));
+		exitItem.setIcon(SpringUtils.getIconFromResource(SpringUtils
+				.getSimpleMessage("menu.file.item.exit.icon")));
+		exitItem.addActionListener(exitHandler);
 		fileMenu.addSeparator();
 		fileMenu.add(exitItem);
 		menuBar.add(fileMenu);
-		JMenu toolMenu = new JMenu(getSimpleMessage("menu.tools"));
-		JMenu serialMenu = new JMenu(getSimpleMessage("menu.tools.menu.serial"));
-		serialMenu
-				.setIcon(getIconFromResource(getSimpleMessage("menu.tools.menu.serial.icon")));
-		ArrayList<String> ports = getCOMPorts();
+		JMenu toolMenu = new JMenu(SpringUtils.getSimpleMessage("menu.tools"));
+		JMenu serialMenu = new JMenu(
+				SpringUtils.getSimpleMessage("menu.tools.menu.serial"));
+		serialMenu.setIcon(SpringUtils.getIconFromResource(SpringUtils
+				.getSimpleMessage("menu.tools.menu.serial.icon")));
+		ArrayList<String> ports = DreadbotUtils.getCOMPorts();
 		for (Iterator<String> portsIter = ports.iterator(); portsIter.hasNext();) {
 			JCheckBoxMenuItem mItem = new JCheckBoxMenuItem(portsIter.next());
 			serialMenu.add(mItem);
@@ -107,9 +87,9 @@ public class DreadbotConsole {
 		// Build panel components
 		servoGridPanel = new ServoGridPanel();
 		frame.add(BorderLayout.SOUTH, servoGridPanel);
-		// Add components to the frame in proper order
+		frame.add(BorderLayout.CENTER, new CanvasPanel());
+		// Add components to the frame
 		frame.setJMenuBar(menuBar);
-		
 
 		// initialize and start the Timer
 		pollTimer = new Timer(DELAY, new ActionListener() {
@@ -218,39 +198,31 @@ public class DreadbotConsole {
 		frame.setVisible(true);
 	}
 
-	private static ImageIcon getIconFromResource(String location) {
-		ImageIcon icon = null;
-		Resource resource = context.getResource(location);
-		try {
-			icon = new ImageIcon(resource.getURL());
-			getLogger().debug("Loaded icon from URL: " + resource.getURL());
-		} catch (IOException e1) {
-			getLogger().warn(e1.getMessage());
-		}
-		return icon;
-	}
-
 	private static Logger getLogger() {
 		return Logger.getLogger(DreadbotConsole.class);
 	}
 
-	private static String getSimpleMessage(String message) {
-		return context.getMessage(message, null, Locale.getDefault());
-	}
+	private static class MyExitHandler extends ExitHandler {
 
-	@SuppressWarnings("unchecked")
-	private static ArrayList<String> getCOMPorts() {
-		ArrayList<String> ports = new ArrayList<String>();
-		java.util.Enumeration<CommPortIdentifier> portEnum = CommPortIdentifier
-				.getPortIdentifiers();
-		while (portEnum.hasMoreElements()) {
-			CommPortIdentifier portId = portEnum.nextElement();
-			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-				getLogger().debug("Found serial port: " + portId.getName());
-				ports.add(portId.getName());
-			}
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			handleEvent();
 		}
-		return ports;
+
+		@Override
+		public void windowClosing(WindowEvent e) {
+			handleEvent();
+
+		}
+
+		private void handleEvent() {
+			getLogger()
+					.debug(SpringUtils.getSimpleMessage("app.timer.exiting"));
+			pollTimer.stop();
+			getLogger().debug(SpringUtils.getSimpleMessage("app.exiting"));
+			System.exit(0);
+		}
+
 	}
 
 }
