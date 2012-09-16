@@ -3,6 +3,7 @@ package scott.dreadbot;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -17,14 +18,19 @@ import javax.swing.Timer;
 
 import org.apache.log4j.Logger;
 
-import scott.dreadbot.components.CanvasPanel;
 import scott.dreadbot.components.DreadbotUtils;
 import scott.dreadbot.components.ExitHandler;
 import scott.dreadbot.components.GamePadController;
 import scott.dreadbot.components.ServoGridPanel;
 import scott.dreadbot.components.SpringUtils;
 
+import com.googlecode.javacv.CanvasFrame;
+import com.googlecode.javacv.OpenCVFrameGrabber;
+import com.googlecode.javacv.cpp.opencv_core.IplImage;
+
 public class DreadbotConsole {
+
+	private static volatile boolean isCapRunning = false;
 
 	private static final int DELAY = 40;
 	private static GamePadController controller;
@@ -51,6 +57,32 @@ public class DreadbotConsole {
 				createAndShowGUI();
 			}
 		});
+		System.out.println("Starting OpenCV...");
+		try {
+			CanvasFrame canvas = new CanvasFrame("Camera Capture");
+			canvas.addWindowListener(new WindowAdapter() {
+				public void windowClosing(WindowEvent e) {
+					isCapRunning = false;
+				}
+			});
+			getLogger().debug("Starting frame grabber...");
+			OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
+			grabber.start();
+			isCapRunning = true;
+			getLogger().debug("Frame grabber started...");
+			IplImage frame;
+			while (isCapRunning) {
+				if ((frame = grabber.grab()) == null)
+					break;
+				canvas.showImage(frame);
+			}
+			getLogger().debug("Stopping frame grabber...");
+			grabber.stop();
+			getLogger().debug("Frame grabber stopped...");
+			canvas.dispose();
+		} catch (Exception e) {
+			System.out.println(e);
+		}
 
 	}
 
@@ -87,7 +119,7 @@ public class DreadbotConsole {
 		// Build panel components
 		servoGridPanel = new ServoGridPanel();
 		frame.add(BorderLayout.SOUTH, servoGridPanel);
-		frame.add(BorderLayout.CENTER, new CanvasPanel());
+
 		// Add components to the frame
 		frame.setJMenuBar(menuBar);
 
@@ -196,6 +228,7 @@ public class DreadbotConsole {
 		// Display the window.
 		frame.pack();
 		frame.setVisible(true);
+
 	}
 
 	private static Logger getLogger() {
@@ -216,10 +249,12 @@ public class DreadbotConsole {
 		}
 
 		private void handleEvent() {
+			isCapRunning = false;
 			getLogger()
 					.debug(SpringUtils.getSimpleMessage("app.timer.exiting"));
 			pollTimer.stop();
 			getLogger().debug(SpringUtils.getSimpleMessage("app.exiting"));
+			frame.dispose();
 			System.exit(0);
 		}
 
