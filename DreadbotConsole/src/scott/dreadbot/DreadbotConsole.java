@@ -1,38 +1,37 @@
 package scott.dreadbot;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import javax.swing.BorderFactory;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.Timer;
 
 import org.apache.log4j.Logger;
 
+import scott.dreadbot.components.CanvasPanel;
 import scott.dreadbot.components.DreadbotUtils;
 import scott.dreadbot.components.ExitHandler;
 import scott.dreadbot.components.GamePadController;
 import scott.dreadbot.components.ServoGridPanel;
 import scott.dreadbot.components.SpringUtils;
 
-import com.googlecode.javacv.CanvasFrame;
-import com.googlecode.javacv.OpenCVFrameGrabber;
-import com.googlecode.javacv.cpp.opencv_core.IplImage;
-
 public class DreadbotConsole {
 
-	private static volatile boolean isCapRunning = false;
 
 	private static final int DELAY = 40;
+	private static CanvasPanel canvasPanel;
 	private static GamePadController controller;
 	private static JFrame frame;
 	private static ServoGridPanel servoGridPanel;
@@ -57,32 +56,7 @@ public class DreadbotConsole {
 				createAndShowGUI();
 			}
 		});
-		System.out.println("Starting OpenCV...");
-		try {
-			CanvasFrame canvas = new CanvasFrame("Camera Capture");
-			canvas.addWindowListener(new WindowAdapter() {
-				public void windowClosing(WindowEvent e) {
-					isCapRunning = false;
-				}
-			});
-			getLogger().debug("Starting frame grabber...");
-			OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
-			grabber.start();
-			isCapRunning = true;
-			getLogger().debug("Frame grabber started...");
-			IplImage frame;
-			while (isCapRunning) {
-				if ((frame = grabber.grab()) == null)
-					break;
-				canvas.showImage(frame);
-			}
-			getLogger().debug("Stopping frame grabber...");
-			grabber.stop();
-			getLogger().debug("Frame grabber stopped...");
-			canvas.dispose();
-		} catch (Exception e) {
-			System.out.println(e);
-		}
+		
 
 	}
 
@@ -224,7 +198,16 @@ public class DreadbotConsole {
 		});
 
 		pollTimer.start();
-
+		JPanel camPanel = new JPanel();
+		camPanel.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createTitledBorder(SpringUtils.getSimpleMessage("canvas.panel.title")),
+				BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+		//camPanel.setPreferredSize(new Dimension(700, 500));
+		camPanel.setLayout(new BorderLayout(5,5));
+		canvasPanel = new CanvasPanel();
+		camPanel.add(BorderLayout.CENTER,canvasPanel);
+		
+		frame.getContentPane().add(BorderLayout.CENTER, camPanel);
 		// Display the window.
 		frame.pack();
 		frame.setVisible(true);
@@ -249,7 +232,7 @@ public class DreadbotConsole {
 		}
 
 		private void handleEvent() {
-			isCapRunning = false;
+			canvasPanel.closeDown();
 			getLogger()
 					.debug(SpringUtils.getSimpleMessage("app.timer.exiting"));
 			pollTimer.stop();
