@@ -1,9 +1,10 @@
 package scott.dreadbot;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -28,7 +29,6 @@ import scott.dreadbot.components.ServoGridPanel;
 import scott.dreadbot.components.SpringUtils;
 
 public class DreadbotConsole {
-
 
 	private static final int DELAY = 40;
 	private static CanvasPanel canvasPanel;
@@ -56,7 +56,6 @@ public class DreadbotConsole {
 				createAndShowGUI();
 			}
 		});
-		
 
 	}
 
@@ -89,6 +88,27 @@ public class DreadbotConsole {
 			serialMenu.add(mItem);
 		}
 		toolMenu.add(serialMenu);
+		JMenu videoMenu = new JMenu(
+				SpringUtils.getSimpleMessage("menu.tools.menu.video"));
+		videoMenu.setIcon(SpringUtils.getIconFromResource(SpringUtils
+				.getSimpleMessage("menu.tools.menu.video.icon")));
+		JCheckBoxMenuItem vStartItem = new JCheckBoxMenuItem(
+				SpringUtils
+						.getSimpleMessage("menu.tools.menu.video.item.start"));
+		vStartItem.addItemListener(new ItemListener() {
+
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				if (e.getStateChange() == ItemEvent.SELECTED) {
+					canvasPanel.startUp();
+				} else {
+					canvasPanel.closeDown();
+				}
+
+			}
+		});
+		videoMenu.add(vStartItem);
+		toolMenu.add(videoMenu);
 		menuBar.add(toolMenu);
 		// Build panel components
 		servoGridPanel = new ServoGridPanel();
@@ -105,7 +125,6 @@ public class DreadbotConsole {
 				controller.poll();
 				int compassDir = controller.getHatDir();
 				if (compassDir != GamePadController.NONE)
-					// getLogger().debug("Compass direction: " + compassDir);
 					switch (compassDir) {
 					case GamePadController.EAST:
 						getLogger().debug("Compass direction: EAST");
@@ -199,14 +218,15 @@ public class DreadbotConsole {
 
 		pollTimer.start();
 		JPanel camPanel = new JPanel();
-		camPanel.setBorder(BorderFactory.createCompoundBorder(
-				BorderFactory.createTitledBorder(SpringUtils.getSimpleMessage("canvas.panel.title")),
-				BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-		//camPanel.setPreferredSize(new Dimension(700, 500));
-		camPanel.setLayout(new BorderLayout(5,5));
+		camPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory
+				.createTitledBorder(SpringUtils
+						.getSimpleMessage("canvas.panel.title")), BorderFactory
+				.createEmptyBorder(5, 5, 5, 5)));
+		// camPanel.setPreferredSize(new Dimension(700, 500));
+		camPanel.setLayout(new BorderLayout(5, 5));
 		canvasPanel = new CanvasPanel();
-		camPanel.add(BorderLayout.CENTER,canvasPanel);
-		
+		camPanel.add(BorderLayout.CENTER, canvasPanel);
+
 		frame.getContentPane().add(BorderLayout.CENTER, camPanel);
 		// Display the window.
 		frame.pack();

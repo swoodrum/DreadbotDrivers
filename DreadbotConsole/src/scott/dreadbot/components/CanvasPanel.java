@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.JPanel;
 
@@ -13,50 +15,47 @@ import org.apache.log4j.Logger;
 
 import com.googlecode.javacv.FrameGrabber.Exception;
 import com.googlecode.javacv.OpenCVFrameGrabber;
+import com.googlecode.javacv.cpp.opencv_core.IplImage;
 
 public class CanvasPanel extends JPanel implements Runnable {
 
 	private static final long serialVersionUID = -442188894858504211L;
 	private static final Dimension PANEL_SIZE = new Dimension(640, 480);
-	private volatile boolean isRunning;
-	// private JFrame parent;
+	private AtomicBoolean isRunning;
 	private BufferedImage image = null; // current webcam snap
-	private OpenCVFrameGrabber grabber;
+	private BufferedImage im = null;
+	private AtomicReference<OpenCVFrameGrabber> grabber;
 
 	public CanvasPanel() {
-		// this.parent = parent;
-		//setBackground(Color.white);
+		isRunning = new AtomicBoolean(); // defaults to false
 		setPreferredSize(PANEL_SIZE);
-		new Thread(this).start();
 	}
 
 	@Override
 	public void run() {
 		getLogger().debug("Starting frame grabber...");
-		grabber = new OpenCVFrameGrabber(CV_CAP_ANY);
-
+		grabber = new AtomicReference<OpenCVFrameGrabber>(
+				new OpenCVFrameGrabber(CV_CAP_ANY));
 		try {
-			grabber.start();
+			grabber.get().start();
 		} catch (Exception e) {
-			e.printStackTrace();
+			getLogger().fatal(e);
 		}
-		BufferedImage im = null;
-		isRunning = true;
-		while (isRunning) {
+		//BufferedImage im = null;
+		isRunning.set(true);
+		while (isRunning.get()) {
 			try {
-				im = grabber.grab().getBufferedImage();
+				IplImage iplImage = grabber.get().grab();
+				if (iplImage != null) {
+					im = iplImage.getBufferedImage();
+					image = im;
+					repaint();
+				}
+
 			} catch (Exception e) {
-				e.printStackTrace();
+				getLogger().debug(e);
 			}
-			if (im == null) {
-				getLogger().debug("problem getting image...");
-			} else {
-				image = im;
-				repaint();
-			}
-
 		}
-
 	}
 
 	@Override
@@ -67,17 +66,26 @@ public class CanvasPanel extends JPanel implements Runnable {
 			g2.drawImage(image, 0, 0, this);
 	}
 
-	public void closeDown()
-	{
-		getLogger().debug("Stopping frame grabber...");
-		isRunning = false;
+	public void closeDown() {
 		try {
-			grabber.stop();
+			if (grabber != null) {
+				isRunning.getAndSet(false);
+				grabber.get().stop();
+				grabber.getAndSet(null);
+				image = null;
+				im = null;
+				grabber = null;
+				repaint();
+			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			getLogger().debug(e);
 		}
-	} 
-	
+	}
+
+	public void startUp() {
+		new Thread(this, "CanvasPanel Grabber Thread").start();
+	}
+
 	private static Logger getLogger() {
 		return Logger.getLogger(CanvasPanel.class);
 	}
