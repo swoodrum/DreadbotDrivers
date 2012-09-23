@@ -1,8 +1,11 @@
 package scott.dreadbot.components;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
 
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
 import org.apache.log4j.Logger;
@@ -29,6 +32,19 @@ public class SpringUtils {
 			getLogger().warn(e1.getMessage());
 		}
 		return icon;
+	}
+	
+	public static BufferedImage getBufferedImageFromResource(String location) {
+		BufferedImage image = null;
+		Resource resource = context.getResource(location);
+		try {
+			File file = resource.getFile();
+			image = ImageIO.read(file);
+			getLogger().debug("Loaded image from FILE: " + file);
+		} catch (IOException e) {
+			getLogger().warn(e.getMessage());
+		}
+		return image;
 	}
 	
 	private static Logger getLogger() {
