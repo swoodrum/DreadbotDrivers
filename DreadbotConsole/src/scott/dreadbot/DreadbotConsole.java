@@ -64,7 +64,7 @@ public class DreadbotConsole {
 		MyExitHandler exitHandler = new MyExitHandler();
 		frame = new JFrame(SpringUtils.getSimpleMessage("frame.title"));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setLayout(new BorderLayout(5, 5));
+		frame.setLayout(new BorderLayout(1, 1));
 		frame.addWindowListener(exitHandler);
 		JMenuBar menuBar = new JMenuBar();
 		// build menus
@@ -221,7 +221,7 @@ public class DreadbotConsole {
 		camPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory
 				.createTitledBorder(SpringUtils
 						.getSimpleMessage("canvas.panel.title")), BorderFactory
-				.createEmptyBorder(5, 5, 5, 5)));
+				.createEmptyBorder(1, 1, 1, 1)));
 		// camPanel.setPreferredSize(new Dimension(700, 500));
 		camPanel.setLayout(new BorderLayout(5, 5));
 		canvasPanel = new CanvasPanel();

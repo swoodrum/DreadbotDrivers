@@ -1,6 +1,6 @@
 package scott.dreadbot.components;
 
-//import static com.googlecode.javacv.cpp.opencv_highgui.CV_CAP_ANY;
+import static com.googlecode.javacv.cpp.opencv_highgui.CV_CAP_ANY;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -46,7 +46,7 @@ public class CanvasPanel extends JPanel implements Runnable {
 		JCVMotionDetector md = null;
 		Point pt;
 		grabber = new AtomicReference<OpenCVFrameGrabber>(
-				new OpenCVFrameGrabber(1)); // CV_CAP_ANY
+				new OpenCVFrameGrabber(CV_CAP_ANY)); // CV_CAP_ANY
 		try {
 			grabber.get().start();
 		} catch (Exception e) {

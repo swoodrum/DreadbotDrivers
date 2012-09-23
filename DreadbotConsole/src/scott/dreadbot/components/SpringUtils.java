@@ -20,7 +20,11 @@ public class SpringUtils {
 	
 	public static String getSimpleMessage(String message) {
 		return context.getMessage(message, null, Locale.getDefault());
-	} 
+	}
+	
+	public static String getMessageWithArgs(String message, Object[] args, Locale locale) {
+		return context.getMessage(message, args, locale);
+	}
 	
 	public static ImageIcon getIconFromResource(String location) {
 		ImageIcon icon = null;

@@ -12,7 +12,7 @@ public class ServoStatusPanel extends JPanel {
 	public ServoStatusPanel(String borderTitle) {
 		setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createTitledBorder(borderTitle),
-				BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+				BorderFactory.createEmptyBorder(1, 1, 1, 1)));
 		
 		slider = new JSlider(JSlider.HORIZONTAL, 0, 3000, 1500);
 		slider.setMajorTickSpacing(1500);
