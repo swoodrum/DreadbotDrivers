@@ -4,12 +4,12 @@ package scott.dreadbot.components;
 // Andrew Davison, ad@fivedots.coe.psu.ac.th, May 2011
 
 /* Motion detections with JavaCV (http://code.google.com/p/javacv/).
-   Compare the current image with the previous one to find the differences,
-   then calculate the center-of-gravity (COG) of the difference image.
+ Compare the current image with the previous one to find the differences,
+ then calculate the center-of-gravity (COG) of the difference image.
 
-   Based on my CVMotionDetector class, but the constructor and calcMove()
-   now take BufferedImage inputs, and smoothing is used to calculate the
-   returned COG point.
+ Based on my CVMotionDetector class, but the constructor and calcMove()
+ now take BufferedImage inputs, and smoothing is used to calculate the
+ returned COG point.
  */
 
 import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
@@ -29,155 +29,162 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
 
+import org.apache.log4j.Logger;
+
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import com.googlecode.javacv.cpp.opencv_imgproc.CvMoments;
 
+public class JCVMotionDetector {
+	private static final int MIN_PIXELS = 100;
+	// minimum number of non-black pixels needed for COG calculation
+	private static final int LOW_THRESHOLD = 64;
 
+	private static final int MAX_PTS = 5;
 
-public class JCVMotionDetector
-{
-  private static final int MIN_PIXELS = 100;   
-       // minimum number of non-black pixels needed for COG calculation
-  private static final int LOW_THRESHOLD = 64;
+	private IplImage prevImg, currImg, diffImg; // grayscale images (diffImg is
+												// bi-level)
+	private Dimension imDim = null; // image dimensions
 
-  private static final int MAX_PTS = 5;
+	private Point[] cogPoints; // array for smoothing COG points
+	private int ptIdx, totalPts;
 
-  private IplImage prevImg, currImg, diffImg;     // grayscale images (diffImg is bi-level)
-  private Dimension imDim = null;    // image dimensions
+	public JCVMotionDetector(BufferedImage firstFrame) {
+		if (firstFrame == null) {
+			getLogger().debug("No frame to initialize motion detector");
+			System.exit(1);
+		}
 
-  private Point[] cogPoints;   // array for smoothing COG points
-  private int ptIdx, totalPts;
+		getLogger().debug("Initializing OpenCV motion detector...");
+		imDim = new Dimension(firstFrame.getWidth(), firstFrame.getHeight());
+		// getLogger().debug("image dimensions: " + imDim);
 
+		cogPoints = new Point[MAX_PTS];
+		ptIdx = 0;
+		totalPts = 0;
 
-  public JCVMotionDetector(BufferedImage firstFrame)
-  {
-    if (firstFrame == null) {
-      System.out.println("No frame to initialize motion detector");
-      System.exit(1);
-    }
+		prevImg = convertFrame(firstFrame);
+		currImg = null;
+		diffImg = IplImage.create(prevImg.width(), prevImg.height(),
+				IPL_DEPTH_8U, 1);
+	} // end of JCVMotionDetector()
 
-    System.out.println("Initializing OpenCV motion detector...");
-    imDim = new Dimension( firstFrame.getWidth(), firstFrame.getHeight() );
-    // System.out.println("image dimensions: " + imDim);
+	public void calcMove(BufferedImage currFrame)
+	// use a new image to create a new COG point
+	{
+		if (currFrame == null) {
+			getLogger().debug("Current frame is null");
+			return;
+		}
 
-    cogPoints = new Point[MAX_PTS];
-    ptIdx = 0;
-    totalPts = 0;
+		if (currImg != null) // store old current as the previous image
+			prevImg = currImg;
 
-    prevImg = convertFrame(firstFrame);
-    currImg = null; 
-    diffImg = IplImage.create(prevImg.width(), prevImg.height(), IPL_DEPTH_8U, 1);
-  }  // end of JCVMotionDetector()
+		currImg = convertFrame(currFrame);
 
+		cvAbsDiff(currImg, prevImg, diffImg);
+		// calculate absolute difference between curr & previous images;
+		// large value means movement; small value means no movement
 
+		/*
+		 * threshold to convert grayscale --> two-level binary: small diffs (0
+		 * -- LOW_THRESHOLD) --> 0 large diffs (LOW_THRESHOLD+1 -- 255) --> 255
+		 */
+		cvThreshold(diffImg, diffImg, LOW_THRESHOLD, 255, CV_THRESH_BINARY);
 
-  public void calcMove(BufferedImage currFrame)
-  // use a new image to create a new COG point
-  {
-    if (currFrame == null) {
-      System.out.println("Current frame is null");
-      return;
-    }
+		Point cogPoint = findCOG(diffImg);
+		if (cogPoint != null) { // store in points array
+			cogPoints[ptIdx] = cogPoint;
+			ptIdx = (ptIdx + 1) % MAX_PTS; // the index cycles around the array
+			if (totalPts < MAX_PTS)
+				totalPts++;
+		}
+	} // end of calcMove()
 
-    if (currImg != null)  // store old current as the previous image
-      prevImg = currImg;
+	public IplImage getCurrImg() {
+		return currImg;
+	}
 
-    currImg = convertFrame(currFrame);
+	public IplImage getDiffImg() {
+		return diffImg;
+	}
 
-    cvAbsDiff(currImg, prevImg, diffImg); 
-           // calculate absolute difference between curr & previous images;
-           // large value means movement; small value means no movement
+	public Dimension getSize() {
+		return imDim;
+	}
 
-    /* threshold to convert grayscale --> two-level binary:
-             small diffs (0 -- LOW_THRESHOLD) --> 0
-             large diffs (LOW_THRESHOLD+1 -- 255) --> 255   */
-    cvThreshold(diffImg, diffImg, LOW_THRESHOLD, 255, CV_THRESH_BINARY);
+	private IplImage convertFrame(BufferedImage buffIm)
+	/*
+	 * Conversion involves: changing the BufferedImage into an IplImage object,
+	 * blurring, converting color to grayscale, and equalization
+	 */
+	{
+		IplImage img = IplImage.createFrom(buffIm);
 
-    Point cogPoint = findCOG(diffImg);
-    if (cogPoint != null) {    // store in points array
-      cogPoints[ptIdx] = cogPoint;
-      ptIdx = (ptIdx+1)%MAX_PTS;   // the index cycles around the array
-      if (totalPts < MAX_PTS)
-        totalPts++;
-    }
-  }  // end of calcMove()
+		// blur image to get reduce camera noise
+		cvSmooth(img, img, CV_BLUR, 3);
 
+		// convert to grayscale
+		IplImage grayImg = IplImage.create(img.width(), img.height(),
+				IPL_DEPTH_8U, 1);
+		cvCvtColor(img, grayImg, CV_BGR2GRAY);
 
-  public IplImage getCurrImg()
-  {  return currImg;  }
+		cvEqualizeHist(grayImg, grayImg); // spread out the grayscale range
 
-  public IplImage getDiffImg()
-  {  return diffImg;  }
+		return grayImg;
+	} // end of convertFrame()
 
-  public Dimension getSize()
-  {  return imDim;  }
+	private Point findCOG(IplImage diffImg)
+	/*
+	 * If there are enough non-black pixels in the difference image (non-black
+	 * means a difference, i.e. movement), then calculate the moments, and use
+	 * them to calculate the (x,y) center of the white areas. These values are
+	 * returned as a Point object.
+	 */
+	{
+		Point pt = null;
 
+		int numPixels = cvCountNonZero(diffImg); // non-zero (non-black) means
+													// motion
+		// getLogger().debug("Num white pixels: " + numWhitePixels);
+		if (numPixels > MIN_PIXELS) {
+			CvMoments moments = new CvMoments();
+			cvMoments(diffImg, moments, 1); // 1 == treat image as binary
+											// (0,255) --> (0,1)
+			double m00 = cvGetSpatialMoment(moments, 0, 0);
+			double m10 = cvGetSpatialMoment(moments, 1, 0);
+			double m01 = cvGetSpatialMoment(moments, 0, 1);
 
+			if (m00 != 0) { // create COG Point
+				int xCenter = (int) Math.round(m10 / m00);
+				int yCenter = (int) Math.round(m01 / m00);
+				// getLogger().debug("COG: (" + xCenter + ", " + yCenter + ")"
+				// );
+				pt = new Point(xCenter, yCenter);
+			}
+		}
+		return pt;
+	} // end of findCOG()
 
-  private IplImage convertFrame(BufferedImage buffIm)
-  /* Conversion involves: changing the BufferedImage into an IplImage
-     object, blurring, converting color to grayscale, and equalization */
-  {
-    IplImage img = IplImage.createFrom(buffIm);
+	public Point getCOG()
+	/*
+	 * return average of points stored in cogPoints[], to smooth the position
+	 */
+	{
+		if (totalPts == 0)
+			return null;
 
-    // blur image to get reduce camera noise 
-    cvSmooth(img, img, CV_BLUR, 3);  
+		int xTot = 0;
+		int yTot = 0;
+		for (int i = 0; i < totalPts; i++) {
+			xTot += cogPoints[i].x;
+			yTot += cogPoints[i].y;
+		}
 
-    // convert to grayscale
-    IplImage grayImg = IplImage.create(img.width(), img.height(), IPL_DEPTH_8U, 1);
-    cvCvtColor(img, grayImg, CV_BGR2GRAY);  
+		return new Point((int) (xTot / totalPts), (int) (yTot / totalPts));
+	} // end of getCOG()
 
-	  cvEqualizeHist(grayImg, grayImg);       // spread out the grayscale range
+	private Logger getLogger() {
+		return Logger.getLogger(JCVMotionDetector.class);
+	}
 
-    return grayImg;
-  }  // end of convertFrame()
-
-
-
-  private Point findCOG(IplImage diffImg)
-  /*  If there are enough non-black pixels in the difference image
-      (non-black means a difference, i.e. movement), then calculate the moments,
-      and use them to calculate the (x,y) center of the white areas.
-      These values are returned as a Point object. */
-  {
-    Point pt = null;
-
-    int numPixels = cvCountNonZero(diffImg);   // non-zero (non-black) means motion
-    // System.out.println("Num white pixels: " + numWhitePixels);
-    if (numPixels > MIN_PIXELS) {
-      CvMoments moments = new CvMoments();
-      cvMoments(diffImg, moments, 1);    // 1 == treat image as binary (0,255) --> (0,1)
-      double m00 = cvGetSpatialMoment(moments, 0, 0) ; 
-      double m10 = cvGetSpatialMoment(moments, 1, 0) ; 
-      double m01 = cvGetSpatialMoment(moments, 0, 1); 
-
-      if (m00 != 0) {   // create COG Point
-        int xCenter = (int) Math.round(m10/m00); 
-        int yCenter = (int) Math.round(m01/m00);
-        // System.out.println("COG: (" + xCenter + ", " + yCenter + ")" );
-        pt = new Point(xCenter, yCenter);
-      }
-    }
-    return pt;
-  }  // end of findCOG()
-
-
-  public Point getCOG()
-  /* return average of points stored in cogPoints[], 
-     to smooth the position */
-  {  
-    if (totalPts == 0)
-      return null;
-
-    int xTot = 0;
-    int yTot = 0;
-    for(int i=0; i < totalPts; i++) {
-      xTot += cogPoints[i].x;
-      yTot += cogPoints[i].y;
-    }
-
-    return new Point( (int)(xTot/totalPts), (int)(yTot/totalPts));  
-  }  // end of getCOG()
-
-
-}  // end of JCVMotionDetector class
+} // end of JCVMotionDetector class
