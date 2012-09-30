@@ -8,5 +8,10 @@
 			<value>scott\dreadbot\resources\locale\messages</value>
 		</property>
 	</bean>
+	<!-- Load in application properties reference -->
+	<bean id="applicationProperties"
+		class="scott.dreadbot.components.SpringPropertyUtils">
+		<property name="location" value="classpath:application.properties" />
+	</bean>
 
 </beans>

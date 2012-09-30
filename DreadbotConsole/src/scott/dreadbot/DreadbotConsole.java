@@ -1,11 +1,17 @@
 package scott.dreadbot;
 
+import gnu.io.SerialPort;
+import gnu.io.SerialPortEvent;
+import gnu.io.SerialPortEventListener;
+
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -35,7 +41,9 @@ public class DreadbotConsole {
 	private static GamePadController controller;
 	private static JFrame frame;
 	private static ServoGridPanel servoGridPanel;
+	private static SerialPort serialPort;
 	private static Timer pollTimer;
+	private static ItemListener serialPortItemHandler;
 
 	// private static JMenuBar menuBar;
 
@@ -45,6 +53,7 @@ public class DreadbotConsole {
 	public static void main(String[] args) {
 		try {
 			controller = new GamePadController();
+			serialPortItemHandler = new SerialPortItemHandler();
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(frame, e.getMessage(),
@@ -85,6 +94,7 @@ public class DreadbotConsole {
 		ArrayList<String> ports = DreadbotUtils.getCOMPorts();
 		for (Iterator<String> portsIter = ports.iterator(); portsIter.hasNext();) {
 			JCheckBoxMenuItem mItem = new JCheckBoxMenuItem(portsIter.next());
+			mItem.addItemListener(serialPortItemHandler);
 			serialMenu.add(mItem);
 		}
 		toolMenu.add(serialMenu);
@@ -252,6 +262,11 @@ public class DreadbotConsole {
 		}
 
 		private void handleEvent() {
+			getLogger().debug("Closing serial port...");
+			if (serialPort != null) {
+				serialPort.removeEventListener();
+				serialPort.close();
+			}
 			canvasPanel.closeDown();
 			getLogger()
 					.debug(SpringUtils.getSimpleMessage("app.timer.exiting"));
@@ -259,6 +274,68 @@ public class DreadbotConsole {
 			getLogger().debug(SpringUtils.getSimpleMessage("app.exiting"));
 			frame.dispose();
 			System.exit(0);
+		}
+
+	}
+
+	private static class SerialPortItemHandler implements ItemListener {
+
+		@Override
+		public void itemStateChanged(ItemEvent e) {
+			if (e.getStateChange() == ItemEvent.SELECTED) {
+				JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getItem();
+				String portId = item.getText();
+				serialPort = DreadbotUtils.getSerialPort(portId);
+				InputStream in;
+				try {
+					in = serialPort.getInputStream();
+					serialPort.addEventListener(new SerialReader(in));
+					serialPort.notifyOnDataAvailable(true);
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+
+			} else {
+				if (serialPort != null) {
+					serialPort.removeEventListener();
+					serialPort.close();
+				}
+				serialPort = null;
+			}
+
+		}
+
+	}
+
+	/**
+	 * Handles the input coming from the serial port. A new line character is
+	 * treated as the end of a block in this example.
+	 */
+	public static class SerialReader implements SerialPortEventListener {
+		private InputStream in;
+		private byte[] buffer = new byte[1024];
+
+		public SerialReader(InputStream in) {
+			this.in = in;
+		}
+
+		public void serialEvent(SerialPortEvent arg0) {
+			int data;
+
+			try {
+				int len = 0;
+				while ((data = in.read()) > -1) {
+					if (data == '\n') {
+						break;
+					}
+					buffer[len++] = (byte) data;
+				}
+				System.out.print(new String(buffer, 0, len));
+			} catch (IOException e) {
+				e.printStackTrace();
+				// System.exit(-1);
+			}
 		}
 
 	}
