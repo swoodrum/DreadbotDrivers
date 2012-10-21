@@ -121,8 +121,8 @@ public class DreadbotConsole {
 		toolMenu.add(videoMenu);
 		menuBar.add(toolMenu);
 		// Build panel components
-		servoGridPanel = new ServoGridPanel();
-		frame.add(BorderLayout.SOUTH, servoGridPanel);
+		//servoGridPanel = new ServoGridPanel();
+		//frame.add(BorderLayout.SOUTH, servoGridPanel);
 
 		// Add components to the frame
 		frame.setJMenuBar(menuBar);
@@ -232,7 +232,6 @@ public class DreadbotConsole {
 				.createTitledBorder(SpringUtils
 						.getSimpleMessage("canvas.panel.title")), BorderFactory
 				.createEmptyBorder(1, 1, 1, 1)));
-		// camPanel.setPreferredSize(new Dimension(700, 500));
 		camPanel.setLayout(new BorderLayout(5, 5));
 		canvasPanel = new CanvasPanel();
 		camPanel.add(BorderLayout.CENTER, canvasPanel);
@@ -292,7 +291,7 @@ public class DreadbotConsole {
 					serialPort.addEventListener(new SerialReader(in));
 					serialPort.notifyOnDataAvailable(true);
 				} catch (Exception e1) {
-					// TODO Auto-generated catch block
+					getLogger().fatal(e1);
 					e1.printStackTrace();
 				}
 
@@ -331,10 +330,9 @@ public class DreadbotConsole {
 					}
 					buffer[len++] = (byte) data;
 				}
-				System.out.print(new String(buffer, 0, len));
+				getLogger().debug(new String(buffer, 0, len));
 			} catch (IOException e) {
 				e.printStackTrace();
-				// System.exit(-1);
 			}
 		}
 

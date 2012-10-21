@@ -67,16 +67,17 @@ public class GamePadController {
 		Controller[] cs = ce.getControllers();
 		if (cs.length == 0) {
 			getLogger().debug("No controllers found");
-			//System.exit(0);
+			// System.exit(0);
 			throw new Exception("No controllers found");
 		} else
-			//System.out.println("Num. controllers: " + cs.length);
+			// System.out.println("Num. controllers: " + cs.length);
 			getLogger().debug("Num. controllers: " + cs.length);
 
 		// get the game pad controller
 		controller = findGamePad(cs);
-		getLogger().debug("Game controller: " + controller.getName() + ", "
-				+ controller.getType());
+		getLogger().debug(
+				"Game controller: " + controller.getName() + ", "
+						+ controller.getType());
 
 		// collect indices for the required game pad components
 		findCompIndices(controller);
@@ -87,7 +88,7 @@ public class GamePadController {
 	private Logger getLogger() {
 		return Logger.getLogger(getClass());
 	}
-	
+
 	private Controller findGamePad(Controller[] cs) throws Exception
 	/*
 	 * Search the array of controllers until a suitable game pad controller is
@@ -106,7 +107,7 @@ public class GamePadController {
 
 		if (i == cs.length) {
 			getLogger().debug("No game pad found");
-			//System.exit(0);
+			// System.exit(0);
 			throw new Exception("No game pad found");
 		} else
 			getLogger().debug("Game pad index: " + i);
@@ -176,12 +177,12 @@ public class GamePadController {
 			c = comps[i];
 			if (isButton(c)) { // deal with a button
 				if (numButtons == NUM_BUTTONS) // already enough buttons
-					getLogger().debug("Found an extra button; index: " + i
-							+ ". Ignoring it");
+					getLogger().debug(
+							"Found an extra button; index: " + i
+									+ ". Ignoring it");
 				else {
 					buttonsIdx[numButtons] = i; // store button index
-					System.out
-							.println("Found " + c.getName() + "; index: " + i);
+					getLogger().debug("Found " + c.getName() + "; index: " + i);
 					numButtons++;
 				}
 			}
@@ -189,8 +190,9 @@ public class GamePadController {
 
 		// fill empty spots in buttonsIdx[] with -1's
 		if (numButtons < NUM_BUTTONS) {
-			getLogger().debug("Too few buttons (" + numButtons
-					+ "); expecting " + NUM_BUTTONS);
+			getLogger().debug(
+					"Too few buttons (" + numButtons + "); expecting "
+							+ NUM_BUTTONS);
 			while (numButtons < NUM_BUTTONS) {
 				buttonsIdx[numButtons] = -1;
 				numButtons++;
@@ -349,8 +351,9 @@ public class GamePadController {
 	 */
 	{
 		if ((pos < 1) || (pos > NUM_BUTTONS)) {
-			getLogger().debug("Button position out of range (1-" + NUM_BUTTONS
-					+ "): " + pos);
+			getLogger().debug(
+					"Button position out of range (1-" + NUM_BUTTONS + "): "
+							+ pos);
 			return false;
 		}
 
