@@ -21,6 +21,7 @@ import javafx.embed.swing.JFXPanel;
 import javafx.scene.SceneBuilder;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.paint.Color;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBoxMenuItem;
@@ -33,6 +34,8 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 import jfxtras.labs.scene.control.gauge.SimpleBattery;
+import jfxtras.labs.scene.control.gauge.SimpleIndicator;
+import jfxtras.labs.scene.control.gauge.SimpleIndicatorBuilder;
 
 import org.apache.log4j.Logger;
 
@@ -55,6 +58,14 @@ public class DreadbotConsole {
 	private static double cpuBatteryCharge;
 	private final static SimpleBattery servoBattery = new SimpleBattery();
 	private final static SimpleBattery cpuBattery = new SimpleBattery();
+	private static SimpleIndicator serialConnectedIndicator;
+
+	private static final Color[] STATE_COLORS = { Color.rgb(180, 180, 180),
+			Color.rgb(180, 0, 0), Color.rgb(180, 180, 0), Color.rgb(0, 180, 0),
+			Color.rgb(0, 0, 180) };
+
+	private static final String[] STATE_TEXTS = { "System offline",
+			"Mission critical", "Warning", "All systems nominal", "Undefined" };
 
 	static MyExitHandler exitHandler = new MyExitHandler();
 
@@ -268,13 +279,17 @@ public class DreadbotConsole {
 				BorderFactory.createEmptyBorder(1, 1, 1, 1)));
 		final JFXPanel jfxPanel = new JFXPanel();
 		// jfxPanel.setPreferredSize(new Dimension(640, 250));
+		serialConnectedIndicator = SimpleIndicatorBuilder.create()
+				.innerColor(STATE_COLORS[1].brighter())
+				.outerColor(STATE_COLORS[1].darker()).glowVisible(false)
+				.prefHeight(15).prefWidth(15).build();
 		Platform.runLater(new Runnable() {
 
 			private GridPane gp = new GridPane();
 
 			@Override
 			public void run() {
-				Label servBatLabel = new Label("Servo Battery:");
+				Label servBatLabel = new Label(SpringUtils.getSimpleMessage("servo.battery.label"));
 				// servoBattery.setScaleX(.25);
 				// servoBattery.setScaleY(.25);
 				servoBattery.setPrefSize(50, 50);
@@ -286,9 +301,12 @@ public class DreadbotConsole {
 				gp.setVgap(5);
 				gp.add(servBatLabel, 0, 0);
 				gp.add(servoBattery, 1, 0);
-				Label cpuBatLabel = new Label("CPU Battery:");
+				Label cpuBatLabel = new Label(SpringUtils.getSimpleMessage("cpu.battery.label"));
 				gp.add(cpuBatLabel, 0, 1);
 				gp.add(cpuBattery, 1, 1);
+				Label serConInd = new Label(SpringUtils.getSimpleMessage("serial.indicator.label"));
+				gp.add(serConInd, 2, 0);
+				gp.add(serialConnectedIndicator, 3, 0);
 				jfxPanel.setScene(SceneBuilder.create()
 				// .root(VBoxBuilder.create().children(SIMPLE_BATTERY)
 				// .build()).build());
@@ -325,9 +343,9 @@ public class DreadbotConsole {
 			}
 			canvasPanel.closeDown();
 			getLogger()
-					.debug(SpringUtils.getSimpleMessage("app.timer.exiting"));
+					.debug("Stopping timer...");
 			pollTimer.stop();
-			getLogger().debug(SpringUtils.getSimpleMessage("app.exiting"));
+			getLogger().debug("Exiting application...");
 			frame.dispose();
 			System.exit(0);
 		}
@@ -347,6 +365,7 @@ public class DreadbotConsole {
 					in = serialPort.getInputStream();
 					serialPort.addEventListener(new SerialReader(in));
 					serialPort.notifyOnDataAvailable(true);
+					serialConnectedIndicator.setInnerColor(STATE_COLORS[3].brighter());
 				} catch (Exception e1) {
 					getLogger().fatal(e1);
 					e1.printStackTrace();
@@ -358,6 +377,7 @@ public class DreadbotConsole {
 					serialPort.close();
 				}
 				serialPort = null;
+				serialConnectedIndicator.setInnerColor(STATE_COLORS[1].brighter());
 			}
 
 		}
