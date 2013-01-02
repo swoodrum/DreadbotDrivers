@@ -59,6 +59,7 @@ public class DreadbotConsole {
 	private final static SimpleBattery servoBattery = new SimpleBattery();
 	private final static SimpleBattery cpuBattery = new SimpleBattery();
 	private static SimpleIndicator serialConnectedIndicator;
+	private static SimpleIndicator servoControllerConnectedIndicator;
 
 	private static final Color[] STATE_COLORS = { Color.rgb(180, 180, 180),
 			Color.rgb(180, 0, 0), Color.rgb(180, 180, 0), Color.rgb(0, 180, 0),
@@ -82,7 +83,7 @@ public class DreadbotConsole {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(frame, e.getMessage(),
 					e.getMessage(), JOptionPane.ERROR_MESSAGE);
-			System.exit(1);
+			//System.exit(1);
 		}
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -283,6 +284,10 @@ public class DreadbotConsole {
 				.innerColor(STATE_COLORS[1].brighter())
 				.outerColor(STATE_COLORS[1].darker()).glowVisible(false)
 				.prefHeight(15).prefWidth(15).build();
+		servoControllerConnectedIndicator = SimpleIndicatorBuilder.create()
+				.innerColor(STATE_COLORS[1].brighter())
+				.outerColor(STATE_COLORS[1].darker()).glowVisible(false)
+				.prefHeight(15).prefWidth(15).build();
 		Platform.runLater(new Runnable() {
 
 			private GridPane gp = new GridPane();
@@ -307,6 +312,9 @@ public class DreadbotConsole {
 				Label serConInd = new Label(SpringUtils.getSimpleMessage("serial.indicator.label"));
 				gp.add(serConInd, 2, 0);
 				gp.add(serialConnectedIndicator, 3, 0);
+				Label servoConInd = new Label(SpringUtils.getSimpleMessage("servo.controller.label"));
+				gp.add(servoConInd, 2, 1);
+				gp.add(servoControllerConnectedIndicator, 3, 1);
 				jfxPanel.setScene(SceneBuilder.create()
 				// .root(VBoxBuilder.create().children(SIMPLE_BATTERY)
 				// .build()).build());
