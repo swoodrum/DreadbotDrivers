@@ -5,6 +5,7 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -14,6 +15,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import javafx.embed.swing.JFXPanel;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBoxMenuItem;
@@ -31,7 +34,6 @@ import scott.dreadbot.components.CanvasPanel;
 import scott.dreadbot.components.DreadbotUtils;
 import scott.dreadbot.components.ExitHandler;
 import scott.dreadbot.components.GamePadController;
-import scott.dreadbot.components.ServoGridPanel;
 import scott.dreadbot.components.SpringUtils;
 
 public class DreadbotConsole {
@@ -40,7 +42,6 @@ public class DreadbotConsole {
 	private static CanvasPanel canvasPanel;
 	private static GamePadController controller;
 	private static JFrame frame;
-	private static ServoGridPanel servoGridPanel;
 	private static SerialPort serialPort;
 	private static Timer pollTimer;
 	private static ItemListener serialPortItemHandler;
@@ -235,8 +236,19 @@ public class DreadbotConsole {
 		camPanel.setLayout(new BorderLayout(5, 5));
 		canvasPanel = new CanvasPanel();
 		camPanel.add(BorderLayout.CENTER, canvasPanel);
+		
+		// build the JFXPanel goodies
+		JPanel telemetryPanel = new JPanel();
+		telemetryPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory
+				.createTitledBorder(SpringUtils
+						.getSimpleMessage("telemetry.panel.title")), BorderFactory
+				.createEmptyBorder(1, 1, 1, 1)));
+		JFXPanel jfxPanel = new JFXPanel();
+		jfxPanel.setPreferredSize(new Dimension(200,200));
+		telemetryPanel.add(jfxPanel);
 
 		frame.getContentPane().add(BorderLayout.CENTER, camPanel);
+		frame.getContentPane().add(BorderLayout.SOUTH, telemetryPanel);
 		// Display the window.
 		frame.pack();
 		frame.setVisible(true);
