@@ -22,7 +22,7 @@
 	<classpathentry kind="lib" path="C:/javacv-0.2-bin/javacv-bin/javacv-macosx-x86_64.jar"/>
 	<classpathentry kind="lib" path="C:/javacv-0.2-bin/javacv-bin/javacv-windows-x86.jar"/>
 	<classpathentry kind="lib" path="C:/javacv-0.2-bin/javacv-bin/javacv-windows-x86_64.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/jfxtras-labs-2.2-r4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/jfxtras-labs-2.2-r4.jar" sourcepath="C:/Users/Scott&apos;s Dell i5/Downloads/jfxtras-labs-2.2-r4-sources.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/jfxtras-labs-2.2-r4-sources.jar"/>
 	<classpathentry kind="lib" path="C:/Program Files (x86)/Java/jdk1.7.0_10/jre/lib/jfxrt.jar"/>
 	<classpathentry kind="output" path="bin"/>

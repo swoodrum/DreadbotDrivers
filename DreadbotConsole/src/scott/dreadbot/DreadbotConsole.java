@@ -5,7 +5,6 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -16,7 +15,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
+import javafx.scene.SceneBuilder;
+import javafx.scene.layout.GridPane;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBoxMenuItem;
@@ -27,6 +29,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.Timer;
+
+import jfxtras.labs.scene.control.gauge.SimpleBattery;
 
 import org.apache.log4j.Logger;
 
@@ -45,6 +49,8 @@ public class DreadbotConsole {
 	private static SerialPort serialPort;
 	private static Timer pollTimer;
 	private static ItemListener serialPortItemHandler;
+	private static double servoBatteryCharge;
+	private final static SimpleBattery servoBattery = new SimpleBattery();
 
 	// private static JMenuBar menuBar;
 
@@ -122,8 +128,8 @@ public class DreadbotConsole {
 		toolMenu.add(videoMenu);
 		menuBar.add(toolMenu);
 		// Build panel components
-		//servoGridPanel = new ServoGridPanel();
-		//frame.add(BorderLayout.SOUTH, servoGridPanel);
+		// servoGridPanel = new ServoGridPanel();
+		// frame.add(BorderLayout.SOUTH, servoGridPanel);
 
 		// Add components to the frame
 		frame.setJMenuBar(menuBar);
@@ -236,15 +242,34 @@ public class DreadbotConsole {
 		camPanel.setLayout(new BorderLayout(5, 5));
 		canvasPanel = new CanvasPanel();
 		camPanel.add(BorderLayout.CENTER, canvasPanel);
-		
+
 		// build the JFXPanel goodies
 		JPanel telemetryPanel = new JPanel();
-		telemetryPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory
-				.createTitledBorder(SpringUtils
-						.getSimpleMessage("telemetry.panel.title")), BorderFactory
-				.createEmptyBorder(1, 1, 1, 1)));
-		JFXPanel jfxPanel = new JFXPanel();
-		jfxPanel.setPreferredSize(new Dimension(200,200));
+		telemetryPanel.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createTitledBorder(SpringUtils
+						.getSimpleMessage("telemetry.panel.title")),
+				BorderFactory.createEmptyBorder(1, 1, 1, 1)));
+		final JFXPanel jfxPanel = new JFXPanel();
+		//jfxPanel.setPreferredSize(new Dimension(200, 200));
+		Platform.runLater(new Runnable() {
+			
+			private GridPane gp = new GridPane();
+			@Override
+			public void run() {
+				servoBattery.setScaleX(.25);
+				servoBattery.setScaleY(.25);
+				servoBattery.setChargingLevel(servoBatteryCharge);
+				gp.setHgap(5);
+				gp.setVgap(5);
+				gp.add(servoBattery, 0, 0);
+				jfxPanel.setScene(SceneBuilder
+						.create()
+						//.root(VBoxBuilder.create().children(SIMPLE_BATTERY)
+								//.build()).build());
+						.root(gp).build());
+
+			}
+		});
 		telemetryPanel.add(jfxPanel);
 
 		frame.getContentPane().add(BorderLayout.CENTER, camPanel);
