@@ -5,6 +5,7 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -18,6 +19,7 @@ import java.util.Iterator;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.SceneBuilder;
+import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 
 import javax.swing.BorderFactory;
@@ -50,7 +52,11 @@ public class DreadbotConsole {
 	private static Timer pollTimer;
 	private static ItemListener serialPortItemHandler;
 	private static double servoBatteryCharge;
+	private static double cpuBatteryCharge;
 	private final static SimpleBattery servoBattery = new SimpleBattery();
+	private final static SimpleBattery cpuBattery = new SimpleBattery();
+
+	static MyExitHandler exitHandler = new MyExitHandler();
 
 	// private static JMenuBar menuBar;
 
@@ -77,64 +83,33 @@ public class DreadbotConsole {
 
 	private static void createAndShowGUI() {
 
-		MyExitHandler exitHandler = new MyExitHandler();
 		frame = new JFrame(SpringUtils.getSimpleMessage("frame.title"));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BorderLayout(1, 1));
 		frame.addWindowListener(exitHandler);
-		JMenuBar menuBar = new JMenuBar();
-		// build menus
-		JMenu fileMenu = new JMenu(SpringUtils.getSimpleMessage("menu.file"));
-		JMenuItem exitItem = new JMenuItem(
-				SpringUtils.getSimpleMessage("menu.file.item.exit"));
-		exitItem.setIcon(SpringUtils.getIconFromResource(SpringUtils
-				.getSimpleMessage("menu.file.item.exit.icon")));
-		exitItem.addActionListener(exitHandler);
-		fileMenu.addSeparator();
-		fileMenu.add(exitItem);
-		menuBar.add(fileMenu);
-		JMenu toolMenu = new JMenu(SpringUtils.getSimpleMessage("menu.tools"));
-		JMenu serialMenu = new JMenu(
-				SpringUtils.getSimpleMessage("menu.tools.menu.serial"));
-		serialMenu.setIcon(SpringUtils.getIconFromResource(SpringUtils
-				.getSimpleMessage("menu.tools.menu.serial.icon")));
-		ArrayList<String> ports = DreadbotUtils.getCOMPorts();
-		for (Iterator<String> portsIter = ports.iterator(); portsIter.hasNext();) {
-			JCheckBoxMenuItem mItem = new JCheckBoxMenuItem(portsIter.next());
-			mItem.addItemListener(serialPortItemHandler);
-			serialMenu.add(mItem);
-		}
-		toolMenu.add(serialMenu);
-		JMenu videoMenu = new JMenu(
-				SpringUtils.getSimpleMessage("menu.tools.menu.video"));
-		videoMenu.setIcon(SpringUtils.getIconFromResource(SpringUtils
-				.getSimpleMessage("menu.tools.menu.video.icon")));
-		JCheckBoxMenuItem vStartItem = new JCheckBoxMenuItem(
-				SpringUtils
-						.getSimpleMessage("menu.tools.menu.video.item.start"));
-		vStartItem.addItemListener(new ItemListener() {
+		buildMenus();
+		createAndStartPollTimer();
+		buildCamPanel();
+		buildJfxPanel();
+		frame.pack();
+		frame.setVisible(true);
 
-			@Override
-			public void itemStateChanged(ItemEvent e) {
-				if (e.getStateChange() == ItemEvent.SELECTED) {
-					canvasPanel.startUp();
-				} else {
-					canvasPanel.closeDown();
-				}
+	}
 
-			}
-		});
-		videoMenu.add(vStartItem);
-		toolMenu.add(videoMenu);
-		menuBar.add(toolMenu);
-		// Build panel components
-		// servoGridPanel = new ServoGridPanel();
-		// frame.add(BorderLayout.SOUTH, servoGridPanel);
+	private static void buildCamPanel() {
+		JPanel camPanel = new JPanel();
+		camPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory
+				.createTitledBorder(SpringUtils
+						.getSimpleMessage("canvas.panel.title")), BorderFactory
+				.createEmptyBorder(1, 1, 1, 1)));
+		camPanel.setLayout(new BorderLayout(5, 5));
+		canvasPanel = new CanvasPanel();
+		camPanel.add(BorderLayout.CENTER, canvasPanel);
+		frame.getContentPane().add(BorderLayout.CENTER, camPanel);
 
-		// Add components to the frame
-		frame.setJMenuBar(menuBar);
+	}
 
-		// initialize and start the Timer
+	private static void createAndStartPollTimer() {
 		pollTimer = new Timer(DELAY, new ActionListener() {
 
 			@Override
@@ -234,50 +209,95 @@ public class DreadbotConsole {
 		});
 
 		pollTimer.start();
-		JPanel camPanel = new JPanel();
-		camPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory
-				.createTitledBorder(SpringUtils
-						.getSimpleMessage("canvas.panel.title")), BorderFactory
-				.createEmptyBorder(1, 1, 1, 1)));
-		camPanel.setLayout(new BorderLayout(5, 5));
-		canvasPanel = new CanvasPanel();
-		camPanel.add(BorderLayout.CENTER, canvasPanel);
 
-		// build the JFXPanel goodies
+	}
+
+	private static void buildMenus() {
+		JMenuBar menuBar = new JMenuBar();
+		JMenu fileMenu = new JMenu(SpringUtils.getSimpleMessage("menu.file"));
+		JMenuItem exitItem = new JMenuItem(
+				SpringUtils.getSimpleMessage("menu.file.item.exit"));
+		exitItem.setIcon(SpringUtils.getIconFromResource(SpringUtils
+				.getSimpleMessage("menu.file.item.exit.icon")));
+		exitItem.addActionListener(exitHandler);
+		fileMenu.addSeparator();
+		fileMenu.add(exitItem);
+		menuBar.add(fileMenu);
+		JMenu toolMenu = new JMenu(SpringUtils.getSimpleMessage("menu.tools"));
+		JMenu serialMenu = new JMenu(
+				SpringUtils.getSimpleMessage("menu.tools.menu.serial"));
+		serialMenu.setIcon(SpringUtils.getIconFromResource(SpringUtils
+				.getSimpleMessage("menu.tools.menu.serial.icon")));
+		ArrayList<String> ports = DreadbotUtils.getCOMPorts();
+		for (Iterator<String> portsIter = ports.iterator(); portsIter.hasNext();) {
+			JCheckBoxMenuItem mItem = new JCheckBoxMenuItem(portsIter.next());
+			mItem.addItemListener(serialPortItemHandler);
+			serialMenu.add(mItem);
+		}
+		toolMenu.add(serialMenu);
+		JMenu videoMenu = new JMenu(
+				SpringUtils.getSimpleMessage("menu.tools.menu.video"));
+		videoMenu.setIcon(SpringUtils.getIconFromResource(SpringUtils
+				.getSimpleMessage("menu.tools.menu.video.icon")));
+		JCheckBoxMenuItem vStartItem = new JCheckBoxMenuItem(
+				SpringUtils
+						.getSimpleMessage("menu.tools.menu.video.item.start"));
+		vStartItem.addItemListener(new ItemListener() {
+
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				if (e.getStateChange() == ItemEvent.SELECTED) {
+					canvasPanel.startUp();
+				} else {
+					canvasPanel.closeDown();
+				}
+
+			}
+		});
+		videoMenu.add(vStartItem);
+		toolMenu.add(videoMenu);
+		menuBar.add(toolMenu);
+		frame.setJMenuBar(menuBar);
+	}
+
+	private static void buildJfxPanel() {
 		JPanel telemetryPanel = new JPanel();
 		telemetryPanel.setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createTitledBorder(SpringUtils
 						.getSimpleMessage("telemetry.panel.title")),
 				BorderFactory.createEmptyBorder(1, 1, 1, 1)));
 		final JFXPanel jfxPanel = new JFXPanel();
-		//jfxPanel.setPreferredSize(new Dimension(200, 200));
+		// jfxPanel.setPreferredSize(new Dimension(640, 250));
 		Platform.runLater(new Runnable() {
-			
+
 			private GridPane gp = new GridPane();
+
 			@Override
 			public void run() {
-				servoBattery.setScaleX(.25);
-				servoBattery.setScaleY(.25);
+				Label servBatLabel = new Label("Servo Battery:");
+				// servoBattery.setScaleX(.25);
+				// servoBattery.setScaleY(.25);
+				servoBattery.setPrefSize(50, 50);
+				// cpuBattery.setScaleX(.25);
+				// cpuBattery.setScaleY(.25);
+				cpuBattery.setPrefSize(50, 50);
 				servoBattery.setChargingLevel(servoBatteryCharge);
 				gp.setHgap(5);
 				gp.setVgap(5);
-				gp.add(servoBattery, 0, 0);
-				jfxPanel.setScene(SceneBuilder
-						.create()
-						//.root(VBoxBuilder.create().children(SIMPLE_BATTERY)
-								//.build()).build());
+				gp.add(servBatLabel, 0, 0);
+				gp.add(servoBattery, 1, 0);
+				Label cpuBatLabel = new Label("CPU Battery:");
+				gp.add(cpuBatLabel, 0, 1);
+				gp.add(cpuBattery, 1, 1);
+				jfxPanel.setScene(SceneBuilder.create()
+				// .root(VBoxBuilder.create().children(SIMPLE_BATTERY)
+				// .build()).build());
 						.root(gp).build());
 
 			}
 		});
 		telemetryPanel.add(jfxPanel);
-
-		frame.getContentPane().add(BorderLayout.CENTER, camPanel);
 		frame.getContentPane().add(BorderLayout.SOUTH, telemetryPanel);
-		// Display the window.
-		frame.pack();
-		frame.setVisible(true);
-
 	}
 
 	private static Logger getLogger() {
