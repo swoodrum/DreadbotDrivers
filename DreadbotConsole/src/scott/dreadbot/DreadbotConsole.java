@@ -6,6 +6,7 @@ import gnu.io.SerialPortEventListener;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -20,18 +21,27 @@ import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.SceneBuilder;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.Border;
 
 import jfxtras.labs.scene.control.gauge.SimpleBattery;
 import jfxtras.labs.scene.control.gauge.SimpleIndicator;
@@ -69,6 +79,8 @@ public class DreadbotConsole {
 			"Mission critical", "Warning", "All systems nominal", "Undefined" };
 
 	static MyExitHandler exitHandler = new MyExitHandler();
+	private static JPanel statusPanel;
+	private static JLabel statusLabel;
 
 	// private static JMenuBar menuBar;
 
@@ -83,7 +95,7 @@ public class DreadbotConsole {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(frame, e.getMessage(),
 					e.getMessage(), JOptionPane.ERROR_MESSAGE);
-			//System.exit(1);
+			// System.exit(1);
 		}
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -95,7 +107,27 @@ public class DreadbotConsole {
 
 	private static void createAndShowGUI() {
 
+		try {
+			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+				if ("Nimbus".equals(info.getName())) {
+					UIManager.setLookAndFeel(info.getClassName());
+					break;
+				}
+			}
+		} catch (Exception e) {
+			getLogger().warn(e);
+			// If Nimbus is not available, fall back to cross-platform
+			try {
+				UIManager.setLookAndFeel(UIManager
+						.getCrossPlatformLookAndFeelClassName());
+			} catch (Exception ex) {
+				getLogger().warn(ex);
+			}
+		}
+
 		frame = new JFrame(SpringUtils.getSimpleMessage("frame.title"));
+		frame.setIconImage(SpringUtils.getIconFromResource(SpringUtils
+				.getSimpleMessage("window.icon.image")).getImage());
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BorderLayout(1, 1));
 		frame.addWindowListener(exitHandler);
@@ -274,12 +306,12 @@ public class DreadbotConsole {
 
 	private static void buildJfxPanel() {
 		JPanel telemetryPanel = new JPanel();
+		telemetryPanel.setLayout(new BorderLayout(1,1));
 		telemetryPanel.setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createTitledBorder(SpringUtils
 						.getSimpleMessage("telemetry.panel.title")),
 				BorderFactory.createEmptyBorder(1, 1, 1, 1)));
 		final JFXPanel jfxPanel = new JFXPanel();
-		// jfxPanel.setPreferredSize(new Dimension(640, 250));
 		serialConnectedIndicator = SimpleIndicatorBuilder.create()
 				.innerColor(STATE_COLORS[1].brighter())
 				.outerColor(STATE_COLORS[1].darker()).glowVisible(false)
@@ -294,35 +326,44 @@ public class DreadbotConsole {
 
 			@Override
 			public void run() {
-				Label servBatLabel = new Label(SpringUtils.getSimpleMessage("servo.battery.label"));
-				// servoBattery.setScaleX(.25);
-				// servoBattery.setScaleY(.25);
+				Label servBatLabel = new Label(SpringUtils
+						.getSimpleMessage("servo.battery.label"));
 				servoBattery.setPrefSize(50, 50);
-				// cpuBattery.setScaleX(.25);
-				// cpuBattery.setScaleY(.25);
 				cpuBattery.setPrefSize(50, 50);
 				servoBattery.setChargingLevel(servoBatteryCharge);
 				gp.setHgap(5);
 				gp.setVgap(5);
 				gp.add(servBatLabel, 0, 0);
 				gp.add(servoBattery, 1, 0);
-				Label cpuBatLabel = new Label(SpringUtils.getSimpleMessage("cpu.battery.label"));
+				Label cpuBatLabel = new Label(SpringUtils
+						.getSimpleMessage("cpu.battery.label"));
 				gp.add(cpuBatLabel, 0, 1);
 				gp.add(cpuBattery, 1, 1);
-				Label serConInd = new Label(SpringUtils.getSimpleMessage("serial.indicator.label"));
+				Label serConInd = new Label(SpringUtils
+						.getSimpleMessage("serial.indicator.label"));
 				gp.add(serConInd, 2, 0);
 				gp.add(serialConnectedIndicator, 3, 0);
-				Label servoConInd = new Label(SpringUtils.getSimpleMessage("servo.controller.label"));
+				Label servoConInd = new Label(SpringUtils
+						.getSimpleMessage("servo.controller.label"));
 				gp.add(servoConInd, 2, 1);
 				gp.add(servoControllerConnectedIndicator, 3, 1);
-				jfxPanel.setScene(SceneBuilder.create()
-				// .root(VBoxBuilder.create().children(SIMPLE_BATTERY)
-				// .build()).build());
-						.root(gp).build());
+				//TextField statusField = new TextField();
+				//GridPane.setColumnSpan(statusField, 4);
+				//gp.add(statusField, 0, 4);
+				jfxPanel.setScene(SceneBuilder.create().root(gp).build());
 
 			}
 		});
-		telemetryPanel.add(jfxPanel);
+		telemetryPanel.add(jfxPanel, BorderLayout.CENTER);
+		statusPanel = new JPanel();
+		statusPanel.setBorder(new BevelBorder(BevelBorder.LOWERED));
+		frame.add(statusPanel, BorderLayout.SOUTH);
+		statusPanel.setPreferredSize(new Dimension(frame.getWidth(), 25));
+		statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.X_AXIS));
+		statusLabel = new JLabel("status");
+		statusLabel.setHorizontalAlignment(SwingConstants.LEFT);
+		statusPanel.add(statusLabel);
+		telemetryPanel.add(statusPanel, BorderLayout.SOUTH);
 		frame.getContentPane().add(BorderLayout.SOUTH, telemetryPanel);
 	}
 
@@ -350,8 +391,7 @@ public class DreadbotConsole {
 				serialPort.close();
 			}
 			canvasPanel.closeDown();
-			getLogger()
-					.debug("Stopping timer...");
+			getLogger().debug("Stopping timer...");
 			pollTimer.stop();
 			getLogger().debug("Exiting application...");
 			frame.dispose();
@@ -373,7 +413,8 @@ public class DreadbotConsole {
 					in = serialPort.getInputStream();
 					serialPort.addEventListener(new SerialReader(in));
 					serialPort.notifyOnDataAvailable(true);
-					serialConnectedIndicator.setInnerColor(STATE_COLORS[3].brighter());
+					serialConnectedIndicator.setInnerColor(STATE_COLORS[3]
+							.brighter());
 				} catch (Exception e1) {
 					getLogger().fatal(e1);
 					e1.printStackTrace();
@@ -385,7 +426,8 @@ public class DreadbotConsole {
 					serialPort.close();
 				}
 				serialPort = null;
-				serialConnectedIndicator.setInnerColor(STATE_COLORS[1].brighter());
+				serialConnectedIndicator.setInnerColor(STATE_COLORS[1]
+						.brighter());
 			}
 
 		}
