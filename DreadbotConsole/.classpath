@@ -25,5 +25,10 @@
 	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/jfxtras-labs-2.2-r4.jar" sourcepath="C:/Users/Scott&apos;s Dell i5/Downloads/jfxtras-labs-2.2-r4-sources.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/jfxtras-labs-2.2-r4-sources.jar"/>
 	<classpathentry kind="lib" path="C:/Program Files (x86)/Java/jdk1.7.0_10/jre/lib/jfxrt.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/.m2/repository/com/typesafe/akka/akka-actor_2.10/2.1.0/akka-actor_2.10-2.1.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/.m2/repository/com/typesafe/akka/akka-actor_2.10/2.1.0/akka-actor_2.10-2.1.0-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/.m2/repository/org/scala-lang/scala-library/2.10.0/scala-library-2.10.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/.m2/repository/org/scala-lang/scala-library/2.10.0/scala-library-2.10.0-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/akka-2.1.0/lib/akka/config-1.0.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -1,8 +1,6 @@
 package scott.dreadbot;
 
 import gnu.io.SerialPort;
-import gnu.io.SerialPortEvent;
-import gnu.io.SerialPortEventListener;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -12,8 +10,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -47,7 +43,13 @@ import scott.dreadbot.components.CanvasPanel;
 import scott.dreadbot.components.DreadbotUtils;
 import scott.dreadbot.components.ExitHandler;
 import scott.dreadbot.components.GamePadController;
+import scott.dreadbot.components.SerialPortBroker;
 import scott.dreadbot.components.SpringUtils;
+import akka.actor.Actor;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
+import akka.actor.UntypedActorFactory;
 
 public class DreadbotConsole {
 
@@ -64,6 +66,9 @@ public class DreadbotConsole {
 	private final static SimpleBattery cpuBattery = new SimpleBattery();
 	private static SimpleIndicator serialConnectedIndicator;
 	private static SimpleIndicator servoControllerConnectedIndicator;
+	private static ActorRef serialPortProxy;
+
+	private static ActorSystem actorSystem;
 
 	private static final Color[] STATE_COLORS = { Color.rgb(180, 180, 180),
 			Color.rgb(180, 0, 0), Color.rgb(180, 180, 0), Color.rgb(0, 180, 0),
@@ -84,6 +89,7 @@ public class DreadbotConsole {
 		try {
 			controller = new GamePadController();
 			serialPortItemHandler = new SerialPortItemHandler();
+			actorSystem = ActorSystem.create("DreadbotActors");
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(frame, e.getMessage(),
@@ -119,8 +125,8 @@ public class DreadbotConsole {
 		}
 
 		frame = new JFrame(SpringUtils.getSimpleMessage("frame.title"));
-		frame.setIconImage(SpringUtils.getIconFromResource(SpringUtils
-				.getSimpleMessage("window.icon.image")).getImage());
+		frame.setIconImage(SpringUtils.getIconFromResource(
+				SpringUtils.getSimpleMessage("window.icon.image")).getImage());
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
 		frame.addWindowListener(exitHandler);
@@ -382,16 +388,17 @@ public class DreadbotConsole {
 		}
 
 		private void handleEvent() {
-			getLogger().debug("Closing serial port...");
-			if (serialPort != null) {
-				serialPort.removeEventListener();
-				serialPort.close();
-			}
+			/*
+			 * getLogger().debug("Closing serial port..."); if (serialPort !=
+			 * null) { serialPort.removeEventListener(); serialPort.close(); }
+			 */
 			canvasPanel.closeDown();
 			getLogger().debug("Stopping timer...");
 			pollTimer.stop();
 			getLogger().debug("Exiting application...");
 			frame.dispose();
+			actorSystem.stop(serialPortProxy);
+			actorSystem.shutdown();
 			System.exit(0);
 		}
 
@@ -399,65 +406,42 @@ public class DreadbotConsole {
 
 	private static class SerialPortItemHandler implements ItemListener {
 
+		
+
 		@Override
 		public void itemStateChanged(ItemEvent e) {
 			if (e.getStateChange() == ItemEvent.SELECTED) {
 				JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getItem();
-				String portId = item.getText();
-				serialPort = DreadbotUtils.getSerialPort(portId);
-				InputStream in;
-				try {
-					in = serialPort.getInputStream();
-					serialPort.addEventListener(new SerialReader(in));
-					serialPort.notifyOnDataAvailable(true);
-					serialConnectedIndicator.setInnerColor(STATE_COLORS[3]
-							.brighter());
-				} catch (Exception e1) {
-					getLogger().fatal(e1);
-					e1.printStackTrace();
-				}
+				final String portId = item.getText();
+				// serialPort = DreadbotUtils.getSerialPort(portId);
+				serialPortProxy = actorSystem.actorOf(new Props(
+						new UntypedActorFactory() {
+							private static final long serialVersionUID = 4741780784339054509L;
+
+							@Override
+							public Actor create() throws Exception {
+								return new SerialPortBroker(portId);
+							}
+						}), "serialPortProxy");
+				/*
+				 * InputStream in; try { in = serialPort.getInputStream();
+				 * serialPort.addEventListener(new SerialReader(in));
+				 * serialPort.notifyOnDataAvailable(true);
+				 * serialConnectedIndicator.setInnerColor(STATE_COLORS[3]
+				 * .brighter()); } catch (Exception e1) { getLogger().fatal(e1);
+				 * e1.printStackTrace(); }
+				 */
 
 			} else {
-				if (serialPort != null) {
-					serialPort.removeEventListener();
-					serialPort.close();
-				}
-				serialPort = null;
-				serialConnectedIndicator.setInnerColor(STATE_COLORS[1]
-						.brighter());
+				/*
+				 * if (serialPort != null) { serialPort.removeEventListener();
+				 * serialPort.close(); } serialPort = null;
+				 * serialConnectedIndicator.setInnerColor(STATE_COLORS[1]
+				 * .brighter());
+				 */
+				actorSystem.stop(serialPortProxy);
 			}
 
-		}
-
-	}
-
-	/**
-	 * Handles the input coming from the serial port. A new line character is
-	 * treated as the end of a block in this example.
-	 */
-	public static class SerialReader implements SerialPortEventListener {
-		private InputStream in;
-		private byte[] buffer = new byte[1024];
-
-		public SerialReader(InputStream in) {
-			this.in = in;
-		}
-
-		public void serialEvent(SerialPortEvent arg0) {
-			int data;
-
-			try {
-				int len = 0;
-				while ((data = in.read()) > -1) {
-					if (data == '\n') {
-						break;
-					}
-					buffer[len++] = (byte) data;
-				}
-				getLogger().debug(new String(buffer, 0, len));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
 
 	}
