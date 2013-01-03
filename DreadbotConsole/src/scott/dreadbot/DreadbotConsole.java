@@ -49,6 +49,7 @@ import akka.actor.Actor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.UntypedActor;
 import akka.actor.UntypedActorFactory;
 
 public class DreadbotConsole {
@@ -67,6 +68,7 @@ public class DreadbotConsole {
 	private static SimpleIndicator serialConnectedIndicator;
 	private static SimpleIndicator servoControllerConnectedIndicator;
 	private static ActorRef serialPortProxy;
+	private static ActorRef messageReceiver;
 
 	private static ActorSystem actorSystem;
 
@@ -90,6 +92,17 @@ public class DreadbotConsole {
 			controller = new GamePadController();
 			serialPortItemHandler = new SerialPortItemHandler();
 			actorSystem = ActorSystem.create("DreadbotActors");
+			messageReceiver = actorSystem.actorOf(new Props(
+					new UntypedActorFactory() {
+						private static final long serialVersionUID = 4741780784339054509L;
+
+						@Override
+						public Actor create() throws Exception {
+							return new MessageReceiver();
+						}
+					}), "receiver");
+			getLogger().debug(">>> Created message receiver: " + messageReceiver.path());
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(frame, e.getMessage(),
@@ -404,9 +417,16 @@ public class DreadbotConsole {
 
 	}
 
-	private static class SerialPortItemHandler implements ItemListener {
+	private static class MessageReceiver extends UntypedActor {
 
-		
+		@Override
+		public void onReceive(Object arg0) throws Exception {
+			getLogger().debug(arg0);
+		}
+
+	}
+
+	private static class SerialPortItemHandler implements ItemListener {
 
 		@Override
 		public void itemStateChanged(ItemEvent e) {
@@ -423,6 +443,7 @@ public class DreadbotConsole {
 								return new SerialPortBroker(portId);
 							}
 						}), "serialPortProxy");
+				getLogger().debug(serialPortProxy.path());
 				/*
 				 * InputStream in; try { in = serialPort.getInputStream();
 				 * serialPort.addEventListener(new SerialReader(in));
