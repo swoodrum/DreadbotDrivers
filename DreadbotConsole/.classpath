@@ -30,5 +30,6 @@
 	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/.m2/repository/org/scala-lang/scala-library/2.10.0/scala-library-2.10.0.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/.m2/repository/org/scala-lang/scala-library/2.10.0/scala-library-2.10.0-sources.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/akka-2.1.0/lib/akka/config-1.0.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Scott&apos;s Dell i5/Downloads/guava-14.0-rc1.jar" sourcepath="C:/Users/Scott&apos;s Dell i5/.m2/repository/com/google/guava/guava/14.0-rc1/guava-14.0-rc1-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

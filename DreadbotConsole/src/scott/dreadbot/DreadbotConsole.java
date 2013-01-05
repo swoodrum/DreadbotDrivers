@@ -1,17 +1,15 @@
 package scott.dreadbot;
 
-import gnu.io.SerialPort;
-
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
@@ -29,7 +27,6 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
@@ -39,10 +36,11 @@ import jfxtras.labs.scene.control.gauge.SimpleIndicatorBuilder;
 
 import org.apache.log4j.Logger;
 
+import scala.concurrent.duration.Duration;
 import scott.dreadbot.components.CanvasPanel;
 import scott.dreadbot.components.DreadbotUtils;
 import scott.dreadbot.components.ExitHandler;
-import scott.dreadbot.components.GamePadController;
+import scott.dreadbot.components.GamePadControllerBroker;
 import scott.dreadbot.components.SerialPortBroker;
 import scott.dreadbot.components.SpringUtils;
 import akka.actor.Actor;
@@ -51,15 +49,16 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.actor.UntypedActorFactory;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+
+import com.google.common.base.Optional;
 
 public class DreadbotConsole {
 
-	private static final int DELAY = 40;
+	private static final int TICK = 40;
 	private static CanvasPanel canvasPanel;
-	private static GamePadController controller;
 	private static JFrame frame;
-	private static SerialPort serialPort;
-	private static Timer pollTimer;
 	private static ItemListener serialPortItemHandler;
 	private static double servoBatteryCharge;
 	private static double cpuBatteryCharge;
@@ -69,6 +68,7 @@ public class DreadbotConsole {
 	private static SimpleIndicator servoControllerConnectedIndicator;
 	private static ActorRef serialPortProxy;
 	private static ActorRef messageReceiver;
+	private static ActorRef gamepadProxy;
 
 	private static ActorSystem actorSystem;
 
@@ -89,7 +89,6 @@ public class DreadbotConsole {
 	 */
 	public static void main(String[] args) {
 		try {
-			controller = new GamePadController();
 			serialPortItemHandler = new SerialPortItemHandler();
 			actorSystem = ActorSystem.create("DreadbotActors");
 			messageReceiver = actorSystem.actorOf(new Props(
@@ -101,13 +100,28 @@ public class DreadbotConsole {
 							return new MessageReceiver();
 						}
 					}), "receiver");
-			getLogger().debug(">>> Created message receiver: " + messageReceiver.path());
+			getLogger().debug(
+					">>> Created message receiver: " + messageReceiver.path());
+			gamepadProxy = actorSystem.actorOf(new Props(
+					new UntypedActorFactory() {
+						private static final long serialVersionUID = 7854797553034288076L;
+
+						@Override
+						public Actor create() throws Exception {
+							return new GamePadControllerBroker();
+						}
+					}), "gamepad");
+			getLogger().debug(
+					">>> Created gamepad proxy: " + gamepadProxy.path());
+			actorSystem.scheduler().schedule(Duration.Zero(),
+					Duration.create(TICK, TimeUnit.MILLISECONDS), gamepadProxy,
+					"tick", actorSystem.dispatcher());
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(frame, e.getMessage(),
 					e.getMessage(), JOptionPane.ERROR_MESSAGE);
-			// System.exit(1);
+			System.exit(1);
 		}
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -128,7 +142,6 @@ public class DreadbotConsole {
 			}
 		} catch (Exception e) {
 			getLogger().warn(e);
-			// If Nimbus is not available, fall back to cross-platform
 			try {
 				UIManager.setLookAndFeel(UIManager
 						.getCrossPlatformLookAndFeelClassName());
@@ -144,7 +157,6 @@ public class DreadbotConsole {
 		frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
 		frame.addWindowListener(exitHandler);
 		buildMenus();
-		createAndStartPollTimer();
 		buildCamPanel();
 		buildJfxPanel();
 		buildStatusPanel();
@@ -170,109 +182,6 @@ public class DreadbotConsole {
 		canvasPanel = new CanvasPanel();
 		camPanel.add(BorderLayout.CENTER, canvasPanel);
 		frame.getContentPane().add(camPanel);
-
-	}
-
-	private static void createAndStartPollTimer() {
-		pollTimer = new Timer(DELAY, new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				controller.poll();
-				int compassDir = controller.getHatDir();
-				if (compassDir != GamePadController.NONE)
-					switch (compassDir) {
-					case GamePadController.EAST:
-						getLogger().debug("Compass direction: EAST");
-						break;
-					case GamePadController.WEST:
-						getLogger().debug("Compass direction: WEST");
-						break;
-					case GamePadController.NORTH:
-						getLogger().debug("Compass direction: NORTH");
-						break;
-					case GamePadController.SOUTH:
-						getLogger().debug("Compass direction: SOUTH");
-						break;
-					case GamePadController.NW:
-						getLogger().debug("Compass direction: NORTHWEST");
-						break;
-					case GamePadController.NE:
-						getLogger().debug("Compass direction: NORTHEAST");
-						break;
-					case GamePadController.SW:
-						getLogger().debug("Compass direction: SOUTHWEST");
-						break;
-					case GamePadController.SE:
-						getLogger().debug("Compass direction: SOUTHEAST");
-						break;
-					}
-				int xyDir = controller.getXYStickDir();
-				if (xyDir != GamePadController.NONE)
-					switch (xyDir) {
-					case GamePadController.EAST:
-						getLogger().debug("XY direction: EAST");
-						break;
-					case GamePadController.WEST:
-						getLogger().debug("XY direction: WEST");
-						break;
-					case GamePadController.NORTH:
-						getLogger().debug("XY direction: NORTH");
-						break;
-					case GamePadController.SOUTH:
-						getLogger().debug("XY direction: SOUTH");
-						break;
-					case GamePadController.NW:
-						getLogger().debug("XY direction: NORTHWEST");
-						break;
-					case GamePadController.NE:
-						getLogger().debug("XY direction: NORTHEAST");
-						break;
-					case GamePadController.SW:
-						getLogger().debug("XY direction: SOUTHWEST");
-						break;
-					case GamePadController.SE:
-						getLogger().debug("XY direction: SOUTHEAST");
-						break;
-					}
-				int zrzDir = controller.getZRZStickDir();
-				if (zrzDir != GamePadController.NONE)
-					switch (zrzDir) {
-					case GamePadController.EAST:
-						getLogger().debug("ZRZ direction: EAST");
-						break;
-					case GamePadController.WEST:
-						getLogger().debug("ZRZ direction: WEST");
-						break;
-					case GamePadController.NORTH:
-						getLogger().debug("ZRZ direction: NORTH");
-						break;
-					case GamePadController.SOUTH:
-						getLogger().debug("ZRZ direction: SOUTH");
-						break;
-					case GamePadController.NW:
-						getLogger().debug("ZRZ direction: NORTHWEST");
-						break;
-					case GamePadController.NE:
-						getLogger().debug("ZRZ direction: NORTHEAST");
-						break;
-					case GamePadController.SW:
-						getLogger().debug("ZRZ direction: SOUTHWEST");
-						break;
-					case GamePadController.SE:
-						getLogger().debug("ZRZ direction: SOUTHEAST");
-						break;
-					}
-				boolean[] buttons = controller.getButtons();
-				for (int i = 0; i < GamePadController.NUM_BUTTONS; i++) {
-					if (buttons[i] == true) {
-						getLogger().debug("Button " + (i + 1) + " pressed");
-					}
-				}
-			}
-		});
-
-		pollTimer.start();
 
 	}
 
@@ -401,16 +310,16 @@ public class DreadbotConsole {
 		}
 
 		private void handleEvent() {
-			/*
-			 * getLogger().debug("Closing serial port..."); if (serialPort !=
-			 * null) { serialPort.removeEventListener(); serialPort.close(); }
-			 */
 			canvasPanel.closeDown();
 			getLogger().debug("Stopping timer...");
-			pollTimer.stop();
 			getLogger().debug("Exiting application...");
 			frame.dispose();
-			actorSystem.stop(serialPortProxy);
+			if (Optional.fromNullable(serialPortProxy).isPresent()) {
+				actorSystem.stop(serialPortProxy);
+			}
+			if (Optional.fromNullable(gamepadProxy).isPresent()) {
+				actorSystem.stop(gamepadProxy);
+			}
 			actorSystem.shutdown();
 			System.exit(0);
 		}
@@ -419,9 +328,11 @@ public class DreadbotConsole {
 
 	private static class MessageReceiver extends UntypedActor {
 
+		LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
 		@Override
-		public void onReceive(Object arg0) throws Exception {
-			getLogger().debug(arg0);
+		public void onReceive(Object message) throws Exception {
+			// log.debug(message.toString());
 		}
 
 	}
@@ -433,7 +344,6 @@ public class DreadbotConsole {
 			if (e.getStateChange() == ItemEvent.SELECTED) {
 				JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getItem();
 				final String portId = item.getText();
-				// serialPort = DreadbotUtils.getSerialPort(portId);
 				serialPortProxy = actorSystem.actorOf(new Props(
 						new UntypedActorFactory() {
 							private static final long serialVersionUID = 4741780784339054509L;
