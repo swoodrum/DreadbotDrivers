@@ -13,6 +13,9 @@ import java.util.concurrent.TimeUnit;
 
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.scene.Scene;
 import javafx.scene.SceneBuilder;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
@@ -30,6 +33,9 @@ import javax.swing.JPanel;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import jfxtras.labs.scene.control.gauge.Led;
+import jfxtras.labs.scene.control.gauge.LedBargraph;
+import jfxtras.labs.scene.control.gauge.LedBargraphBuilder;
 import jfxtras.labs.scene.control.gauge.SimpleBattery;
 import jfxtras.labs.scene.control.gauge.SimpleIndicator;
 import jfxtras.labs.scene.control.gauge.SimpleIndicatorBuilder;
@@ -71,6 +77,7 @@ public class DreadbotConsole {
 	private static ActorRef serialPortProxy;
 	private static ActorRef messageReceiver;
 	private static ActorRef gamepadProxy;
+	private static LedBargraph RSSIGraph;
 
 	private static ActorSystem actorSystem;
 
@@ -115,9 +122,11 @@ public class DreadbotConsole {
 			actorSystem.scheduler().schedule(Duration.Zero(),
 					Duration.create(TICK, TimeUnit.MILLISECONDS), gamepadProxy,
 					"tick", actorSystem.dispatcher());
-			actorSystem.scheduler().scheduleOnce(
-					Duration.create(CHECK_GAMEPAD_AFTER, TimeUnit.MILLISECONDS),
-					gamepadProxy, "gamepad up?", actorSystem.dispatcher());
+			actorSystem.scheduler()
+					.scheduleOnce(
+							Duration.create(CHECK_GAMEPAD_AFTER,
+									TimeUnit.MILLISECONDS), gamepadProxy,
+							"gamepad up?", actorSystem.dispatcher());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -259,18 +268,22 @@ public class DreadbotConsole {
 
 			@Override
 			public void run() {
+				gp.setStyle("-fx-background-color:#6B8E23");
 				Label servBatLabel = new Label(SpringUtils
 						.getSimpleMessage("servo.battery.label"));
 				servoBattery.setPrefSize(50, 50);
 				servoBattery.setRotate(270.0);
 				servoBattery.setScaleX(.75);
 				servoBattery.setScaleY(.75);
+				servoBattery.setStyle("-fx-background-color:black");
 				cpuBattery.setPrefSize(50, 50);
 				cpuBattery.setRotate(270.0);
 				cpuBattery.setScaleX(.75);
 				cpuBattery.setScaleY(.75);
+				cpuBattery.setStyle("-fx-background-color:black");
 				servoBattery.setChargingLevel(servoBatteryCharge);
 				cpuBattery.setChargingLevel(cpuBatteryCharge);
+				gp.setPadding(new Insets(5));
 				gp.setHgap(5);
 				gp.setVgap(5);
 				gp.add(servBatLabel, 0, 0);
@@ -291,7 +304,25 @@ public class DreadbotConsole {
 						.getSimpleMessage("gamepad.indicator.label"));
 				gp.add(gamepadConInd, 2, 2);
 				gp.add(gamepadConnectedIndicator, 3, 2);
-				jfxPanel.setScene(SceneBuilder.create().root(gp).build());
+				Label rssiInd = new Label(SpringUtils
+						.getSimpleMessage("rssi.indicator.label"));
+				gp.add(rssiInd, 4, 0);
+				RSSIGraph = LedBargraphBuilder.create()
+						.orientation(Orientation.HORIZONTAL)
+						.ledType(Led.Type.HORIZONTAL).peakValueVisible(true)
+						.build();
+				RSSIGraph.setPrefSize(10, 50);
+				RSSIGraph.setScaleX(0.60);
+				RSSIGraph.setScaleY(0.60);
+				RSSIGraph.setStyle("-fx-background-color:black");
+				//RSSIGraph.setMaxHeight(50);
+				//RSSIGraph.setMaxWidth(50);
+				//GridPane.setRowSpan(RSSIGraph, new Integer(4));
+				gp.add(RSSIGraph, 5, 0);
+				Scene scene = SceneBuilder.create().root(gp).build();
+				
+				jfxPanel.setScene(scene);
+				//jfxPanel.setScene(SceneBuilder.create().root(gp).build());
 
 			}
 		});
@@ -369,7 +400,8 @@ public class DreadbotConsole {
 				final String portId = item.getText();
 				serialPortProxy = actorSystem.actorOf(new Props(
 						new UntypedActorFactory() {
-							private static final long serialVersionUID = 4741780784339054509L;
+
+							private static final long serialVersionUID = 670945109736850317L;
 
 							@Override
 							public Actor create() throws Exception {
