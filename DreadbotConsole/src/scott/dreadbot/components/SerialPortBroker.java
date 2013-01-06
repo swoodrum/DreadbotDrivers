@@ -9,6 +9,7 @@ import java.io.InputStream;
 
 import org.apache.log4j.Logger;
 
+import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 
 public class SerialPortBroker extends UntypedActor implements
@@ -32,6 +33,13 @@ public class SerialPortBroker extends UntypedActor implements
 			inputStream = serialPort.getInputStream();
 			serialPort.addEventListener(this);
 			serialPort.notifyOnDataAvailable(true);
+			/*
+			 * ActorRef main = getContext().actorFor(
+			 * "akka://DreadbotActors/user/receiver");
+			 * main.tell("serialport up", getSelf());
+			 */
+			getContext().actorFor("akka://DreadbotActors/user/receiver").tell(
+					"serialport up", getSelf());
 		} catch (Exception e1) {
 			getLogger().fatal(e1);
 			e1.printStackTrace();
@@ -52,6 +60,8 @@ public class SerialPortBroker extends UntypedActor implements
 	public void postStop() {
 		serialPort.close();
 		getLogger().debug("Serial port closed from Akka...");
+		getContext().actorFor("akka://DreadbotActors/user/receiver").tell(
+				"serialport down", getSelf());
 	}
 
 	@Override

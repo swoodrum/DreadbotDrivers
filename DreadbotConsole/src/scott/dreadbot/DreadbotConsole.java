@@ -76,9 +76,6 @@ public class DreadbotConsole {
 			Color.rgb(180, 0, 0), Color.rgb(180, 180, 0), Color.rgb(0, 180, 0),
 			Color.rgb(0, 0, 180) };
 
-	private static final String[] STATE_TEXTS = { "System offline",
-			"Mission critical", "Warning", "All systems nominal", "Undefined" };
-
 	static MyExitHandler exitHandler = new MyExitHandler();
 	private static TextField statusField;
 
@@ -333,6 +330,14 @@ public class DreadbotConsole {
 		@Override
 		public void onReceive(Object message) throws Exception {
 			// log.debug(message.toString());
+			if (message.equals("serialport up")) {
+				log.debug(message.toString());
+				serialConnectedIndicator.setInnerColor(STATE_COLORS[3]
+						.brighter());
+			} else if (message.equals("serialport down")) {
+				serialConnectedIndicator.setInnerColor(STATE_COLORS[1]
+						.brighter());
+			}
 		}
 
 	}
@@ -354,22 +359,7 @@ public class DreadbotConsole {
 							}
 						}), "serialPortProxy");
 				getLogger().debug(serialPortProxy.path());
-				/*
-				 * InputStream in; try { in = serialPort.getInputStream();
-				 * serialPort.addEventListener(new SerialReader(in));
-				 * serialPort.notifyOnDataAvailable(true);
-				 * serialConnectedIndicator.setInnerColor(STATE_COLORS[3]
-				 * .brighter()); } catch (Exception e1) { getLogger().fatal(e1);
-				 * e1.printStackTrace(); }
-				 */
-
 			} else {
-				/*
-				 * if (serialPort != null) { serialPort.removeEventListener();
-				 * serialPort.close(); } serialPort = null;
-				 * serialConnectedIndicator.setInnerColor(STATE_COLORS[1]
-				 * .brighter());
-				 */
 				actorSystem.stop(serialPortProxy);
 			}
 
