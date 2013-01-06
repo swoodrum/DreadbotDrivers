@@ -57,6 +57,7 @@ import com.google.common.base.Optional;
 public class DreadbotConsole {
 
 	private static final int TICK = 40;
+	private static final int CHECK_GAMEPAD_AFTER = 3000;
 	private static CanvasPanel canvasPanel;
 	private static JFrame frame;
 	private static ItemListener serialPortItemHandler;
@@ -66,6 +67,7 @@ public class DreadbotConsole {
 	private final static SimpleBattery cpuBattery = new SimpleBattery();
 	private static SimpleIndicator serialConnectedIndicator;
 	private static SimpleIndicator servoControllerConnectedIndicator;
+	private static SimpleIndicator gamepadConnectedIndicator;
 	private static ActorRef serialPortProxy;
 	private static ActorRef messageReceiver;
 	private static ActorRef gamepadProxy;
@@ -113,6 +115,9 @@ public class DreadbotConsole {
 			actorSystem.scheduler().schedule(Duration.Zero(),
 					Duration.create(TICK, TimeUnit.MILLISECONDS), gamepadProxy,
 					"tick", actorSystem.dispatcher());
+			actorSystem.scheduler().scheduleOnce(
+					Duration.create(CHECK_GAMEPAD_AFTER, TimeUnit.MILLISECONDS),
+					gamepadProxy, "gamepad up?", actorSystem.dispatcher());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -125,7 +130,6 @@ public class DreadbotConsole {
 				createAndShowGUI();
 			}
 		});
-
 	}
 
 	private static void createAndShowGUI() {
@@ -159,7 +163,6 @@ public class DreadbotConsole {
 		buildStatusPanel();
 		frame.pack();
 		frame.setVisible(true);
-
 	}
 
 	private static void buildStatusPanel() {
@@ -246,6 +249,10 @@ public class DreadbotConsole {
 				.innerColor(STATE_COLORS[1].brighter())
 				.outerColor(STATE_COLORS[1].darker()).glowVisible(false)
 				.prefHeight(15).prefWidth(15).build();
+		gamepadConnectedIndicator = SimpleIndicatorBuilder.create()
+				.innerColor(STATE_COLORS[1].brighter())
+				.outerColor(STATE_COLORS[1].darker()).glowVisible(false)
+				.prefHeight(15).prefWidth(15).build();
 		Platform.runLater(new Runnable() {
 
 			private GridPane gp = new GridPane();
@@ -280,6 +287,10 @@ public class DreadbotConsole {
 						.getSimpleMessage("servo.controller.label"));
 				gp.add(servoConInd, 2, 1);
 				gp.add(servoControllerConnectedIndicator, 3, 1);
+				Label gamepadConInd = new Label(SpringUtils
+						.getSimpleMessage("gamepad.indicator.label"));
+				gp.add(gamepadConInd, 2, 2);
+				gp.add(gamepadConnectedIndicator, 3, 2);
 				jfxPanel.setScene(SceneBuilder.create().root(gp).build());
 
 			}
@@ -331,12 +342,19 @@ public class DreadbotConsole {
 		public void onReceive(Object message) throws Exception {
 			// log.debug(message.toString());
 			if (message.equals("serialport up")) {
-				log.debug(message.toString());
 				serialConnectedIndicator.setInnerColor(STATE_COLORS[3]
 						.brighter());
 			} else if (message.equals("serialport down")) {
 				serialConnectedIndicator.setInnerColor(STATE_COLORS[1]
 						.brighter());
+			} else if (message.equals("gamepad up")) {
+				log.debug(message.toString());
+				if (Optional.fromNullable(gamepadConnectedIndicator)
+						.isPresent()) {
+					gamepadConnectedIndicator.setInnerColor(STATE_COLORS[3]
+							.brighter());
+				}
+
 			}
 		}
 

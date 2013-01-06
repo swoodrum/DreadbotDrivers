@@ -1,6 +1,5 @@
 package scott.dreadbot.components;
 
-import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -114,12 +113,22 @@ public class GamePadControllerBroker extends UntypedActor {
 						getLogger().debug("Button " + (i + 1) + " pressed");
 					}
 				}
-				ActorRef main = getContext().actorFor(
-						"akka://DreadbotActors/user/receiver");
-				main.tell("gamepad", getSelf());
-			} else {
-				unhandled(message);
+				/*
+				 * ActorRef main = getContext().actorFor(
+				 * "akka://DreadbotActors/user/receiver"); main.tell("gamepad",
+				 * getSelf());
+				 */
 			}
+		} else if (message.equals("gamepad up?")) {
+			getLogger().debug("Got gamepad upness query");
+			if (Optional.fromNullable(controller).isPresent()) {
+				getContext().actorFor("akka://DreadbotActors/user/receiver")
+						.tell("gamepad up", getSelf());
+				getLogger().debug("Sent gamepad upness response");
+			}
+			
+		} else {
+			unhandled(message);
 		}
 
 	}
